@@ -40,9 +40,11 @@ class Client(object):
              wait=False, wait_index=0, timeout=None):
         """Requests to get a node by the given key."""
         url = self._key_url(key)
-        params = adapt_params(recursive=(bool, recursive),
-                              sorted=(bool, sorted), quorum=(bool, quorum),
-                              wait=(bool, wait), wait_index=(int, wait_index))
+        params = adapt_args(recursive=(bool, recursive or None),
+                            sorted=(bool, sorted or None),
+                            quorum=(bool, quorum or None),
+                            wait=(bool, wait or None),
+                            wait_index=(int, wait_index))
         with self.session as s:
             res = s.get(url, params=params, timeout=timeout)
         return res.json(), res.headers
@@ -59,14 +61,59 @@ class Client(object):
             key, recursive=recursive, sorted=sorted, quorum=quorum,
             wait=True, wait_index=index, timeout=timeout)
 
+    def _set(self, key, value=None, dir=False, ttl=None,
+             prev_value=None, prev_index=None, prev_exist=None, timeout=None):
+        if (value is None) == (not dir):
+            raise ValueError('Set value or make to directory')
+        if value is not None and not isinstance(value, unicode):
+            raise TypeError('Unicode value required')
+        url = self._key_url(key)
+        data = adapt_args(value=(unicode, value),
+                          dir=(bool, dir or None),
+                          ttl=(int, ttl),
+                          prev_value=(unicode, prev_value),
+                          prev_index=(int, prev_index),
+                          prev_exist=(bool, prev_exist))
+        with self.session as s:
+            res = s.put(url, data=data, timeout=timeout)
+        return res.json(), res.headers
 
-def adapt_params(params=None, **kwargs):
-    if params is None:
-        params = {}
+    def set(self, key, value=None, dir=False, ttl=None,
+            prev_value=None, prev_index=None, timeout=None):
+        return self._set(
+            key, value, dir=dir, ttl=ttl,
+            prev_value=prev_value, prev_index=prev_index, timeout=timeout)
+
+    def make(self, key, value=None, dir=False, ttl=None, timeout=None):
+        return self._set(
+            key, value, dir=dir, ttl=ttl, prev_exist=False, timeout=timeout)
+
+    def update(self, key, value=None, dir=False, ttl=None,
+               prev_value=None, prev_index=None, timeout=None):
+        return self._set(
+            key, value, dir=dir, ttl=ttl,
+            prev_value=prev_value, prev_index=prev_index, prev_exist=True,
+            timeout=timeout)
+
+    def delete(self, key, recursive=False,
+               prev_value=None, prev_index=None, timeout=None):
+        url = self._key_url(key)
+        data = adapt_args(recursive=(bool, recursive or None),
+                          prev_value=(unicode, prev_value),
+                          prev_index=(int, prev_index))
+        with self.session as s:
+            res = s.delete(url, data=data, timeout=timeout)
+        return res.json(), res.headers
+
+
+def adapt_args(args=None, **kwargs):
+    if args is None:
+        args = {}
     for key, (type_, value) in kwargs.items():
+        if value is None:
+            continue
         if type_ is bool:
-            if value:
-                params[key] = u'true'
+            args[key] = u'true' if value else u'false'
         else:
-            params[key] = value
-    return params
+            args[key] = value
+    return args
