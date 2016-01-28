@@ -15,6 +15,24 @@ __all__ = ['Client']
 
 
 class Adapter(object):
+
+    def get(self, key, recursive=False, sorted=False, quorum=False,
+            wait=False, wait_index=0, timeout=None):
+        raise NotImplementedError
+
+    def set(self, key, value=None, dir=False, ttl=None,
+            prev_value=None, prev_index=None, prev_exist=None, timeout=None):
+        raise NotImplementedError
+
+    def append(self, key, value=None, dir=False, ttl=None, timeout=None):
+        raise NotImplementedError
+
+    def delete(self, key, recursive=False,
+               prev_value=None, prev_index=None, timeout=None):
+        raise NotImplementedError
+
+
+class EtcdAdapter(Adapter):
     """Communicates with an etcd server.  It implements several essential raw
     methods of etcd.
     """
@@ -115,7 +133,14 @@ class Adapter(object):
 class Client(object):
 
     def __init__(self, *args, **kwargs):
-        self._adapter = Adapter(*args, **kwargs)
+        self._adapter = EtcdAdapter(*args, **kwargs)
+
+    @property
+    def url(self):
+        return self._adapter.url
+
+    def __repr__(self):
+        return u'<etc.%s \'%s\'>' % (self.__class__.__name__, self.url)
 
     def get(self, key, recursive=False, sorted=False, quorum=False,
             timeout=None):
@@ -151,10 +176,3 @@ class Client(object):
         return self._adapter.delete(
             key, recursive=recursive, prev_value=prev_value,
             prev_index=prev_index, timeout=timeout)
-
-    @property
-    def url(self):
-        return self._adapter.url
-
-    def __repr__(self):
-        return u'<etc.%s \'%s\'>' % (self.__class__.__name__, self.url)
