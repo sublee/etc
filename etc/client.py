@@ -15,6 +15,9 @@ __all__ = ['Client']
 
 
 class Adapter(object):
+    """Communicates with an etcd server.  It implements several essential raw
+    methods of etcd.
+    """
 
     def __init__(self, url=u'http://127.0.0.1:4001', default_timeout=60):
         self.url = url
@@ -67,8 +70,9 @@ class Adapter(object):
 
     def set(self, key, value=None, dir=False, ttl=None,
             prev_value=None, prev_index=None, prev_exist=None, timeout=None):
+        """Requests to create an ordered node into a node by the given key."""
         if (value is None) == (not dir):
-            raise ValueError('Set value or make to directory')
+            raise ValueError('Set value or make as directory')
         if value is not None and not isinstance(value, unicode):
             raise TypeError('Set unicode value')
         url = self.make_key_url(key)
@@ -82,8 +86,23 @@ class Adapter(object):
             res = s.put(url, data=data, timeout=timeout)
         return self.wrap_result(res)
 
+    def append(self, key, value=None, dir=False, ttl=None, timeout=None):
+        """Requests to create an ordered node into a node by the given key."""
+        if (value is None) == (not dir):
+            raise ValueError('Set value or make as directory')
+        if value is not None and not isinstance(value, unicode):
+            raise TypeError('Set unicode value')
+        url = self.make_key_url(key)
+        data = self.build_args(value=(unicode, value),
+                               dir=(bool, dir or None),
+                               ttl=(int, ttl))
+        with self.session as s:
+            res = s.post(url, data=data, timeout=timeout)
+        return self.wrap_result(res)
+
     def delete(self, key, recursive=False,
                prev_value=None, prev_index=None, timeout=None):
+        """Requests to delete a node by the given key."""
         url = self.make_key_url(key)
         data = self.build_args(recursive=(bool, recursive or None),
                                prev_value=(unicode, prev_value),
