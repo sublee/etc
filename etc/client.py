@@ -171,6 +171,10 @@ class Client(object):
             prev_value=prev_value, prev_index=prev_index, prev_exist=True,
             timeout=timeout)
 
+    def append(self, key, value=None, dir=False, ttl=None, timeout=None):
+        return self._adapter.append(
+            key, value, dir=dir, ttl=ttl, timeout=timeout)
+
     def delete(self, key, recursive=False,
                prev_value=None, prev_index=None, timeout=None):
         return self._adapter.delete(
