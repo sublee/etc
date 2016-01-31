@@ -7,10 +7,12 @@ from __future__ import absolute_import
 
 from six import with_metaclass
 
+from .helpers import registry
 
-__all__ = ['CompareAndDeleteResult', 'CompareAndSwapResult', 'CreateResult',
-           'DeleteResult', 'DirectoryNode', 'ExpireResult', 'GetResult',
-           'Node', 'Result', 'SetResult', 'UpdateResult', 'ValueNode']
+
+__all__ = ['ComparedThenDeleted', 'ComparedThenSwapped', 'Created', 'Deleted',
+           'Directory', 'Expired', 'Got', 'Node', 'Result', 'Set',
+           'Updated', 'Value']
 
 
 class Node(object):
@@ -34,34 +36,25 @@ class Node(object):
         return self.expiration
 
 
-class ValueNode(Node):
+class Value(Node):
 
     __slots__ = Node.__slots__ + ('value',)
 
     def __init__(self, key, value, *args, **kwargs):
-        super(ValueNode, self).__init__(key, *args, **kwargs)
+        super(Value, self).__init__(key, *args, **kwargs)
         self.value = value
 
 
-class DirectoryNode(Node):
+class Directory(Node):
 
     __slots__ = Node.__slots__ + ('nodes',)
 
     def __init__(self, key, nodes=(), *args, **kwargs):
-        super(DirectoryNode, self).__init__(key, *args, **kwargs)
+        super(Directory, self).__init__(key, *args, **kwargs)
         self.nodes = nodes
 
 
-class ResultMeta(type):
-
-    def __init__(cls, name, bases, attrs):
-        super(ResultMeta, cls).__init__(name, bases, attrs)
-        if cls.action is not NotImplemented:
-            assert cls.action not in cls.__registry__
-            cls.__registry__[cls.action] = cls
-
-
-class Result(with_metaclass(ResultMeta)):
+class Result(with_metaclass(registry('action'))):
 
     __slots__ = ('node', 'prev_node', 'etcd_index', 'raft_index', 'raft_term')
 
@@ -86,53 +79,17 @@ class Result(with_metaclass(ResultMeta)):
     value = property(lambda x: x.node.value)
     nodes = property(lambda x: x.node.nodes)
 
-    __registry__ = {}
 
-    @classmethod
-    def make(cls, action, *args, **kwargs):
-        try:
-            sub_cls = cls.__registry__[action]
-        except KeyError:
-            raise ValueError('Unknown action: %s' % action)
-        else:
-            return sub_cls(*args, **kwargs)
+def def_(name, action=NotImplemented, base=Result):
+    return type(name, (base,), {'action': action})
 
+Got = def_('Got', 'get')
+Set = def_('Set', 'set')
+Deleted = def_('Deleted', 'delete')
 
-class GetResult(Result):
+Updated = def_('Updated', 'update', Set)
+Created = def_('Created', 'create', Set)
+Expired = def_('Expired', 'expire', Deleted)
 
-    action = 'get'
-
-
-class SetResult(Result):
-
-    action = 'set'
-
-
-class UpdateResult(Result):
-
-    action = 'update'
-
-
-class CreateResult(Result):
-
-    action = 'create'
-
-
-class ExpireResult(Result):
-
-    action = 'expire'
-
-
-class DeleteResult(Result):
-
-    action = 'delete'
-
-
-class CompareAndSwapResult(Result):
-
-    action = 'compareAndSwap'
-
-
-class CompareAndDeleteResult(Result):
-
-    action = 'compareAndDelete'
+ComparedThenSwapped = def_('ComparedThenSwapped', 'compareAndSwap', Set)
+ComparedThenDeleted = def_('ComparedThenDeleted', 'compareAndDelete', Deleted)

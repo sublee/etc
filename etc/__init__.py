@@ -18,17 +18,32 @@ from __future__ import absolute_import
 
 from .__about__ import __version__  # noqa
 from .client import Client
+from .errors import (
+    CommandError, DirNotEmpty, Error, EtcdError, EventIndexCleared, IndexNaN,
+    InvalidField, InvalidForm, KeyNotFound, LeaderElect, NodeExist, NotDir,
+    NotFile, PostFormError, PrevValueRequired, RaftError, RaftInternal,
+    RootROnly, TestFailed, TTLNaN, WatcherCleared)
 from .results import (
-    CompareAndDeleteResult, CompareAndSwapResult, CreateResult, DeleteResult,
-    DirectoryNode, ExpireResult, GetResult, Node, Result, SetResult,
-    UpdateResult, ValueNode)
+    ComparedThenDeleted, ComparedThenSwapped, Created, Deleted, Directory,
+    Expired, Got, Node, Result, Set, Updated, Value)
 # from .errors import
 
 
-__all__ = ['Client', 'CompareAndDeleteResult', 'CompareAndSwapResult',
-           'CreateResult', 'DeleteResult', 'DirectoryNode', 'etcd',
-           'ExpireResult', 'GetResult', 'Node', 'Result', 'SetResult',
-           'UpdateResult', 'ValueNode']
+__all__ = [
+    # etc
+    'etcd',
+    # etc.client
+    'Client',
+    # etc.errors
+    'CommandError', 'DirNotEmpty', 'Error', 'EtcdError', 'EventIndexCleared',
+    'IndexNaN', 'InvalidField', 'InvalidForm', 'KeyNotFound', 'LeaderElect',
+    'NodeExist', 'NotDir', 'NotFile', 'PostFormError', 'PrevValueRequired',
+    'RaftError', 'RaftInternal', 'RootROnly', 'TestFailed', 'TTLNaN',
+    'WatcherCleared',
+    # etc.results
+    'ComparedThenDeleted', 'ComparedThenSwapped', 'Created', 'Deleted',
+    'Directory', 'Expired', 'Got', 'Node', 'Result', 'Set', 'Updated', 'Value',
+]
 
 
 #: An alias for :class:`Client`.

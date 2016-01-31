@@ -10,7 +10,8 @@ from urlparse import urljoin
 
 import requests
 
-from .results import DirectoryNode, Node, Result, ValueNode
+from .errors import Error
+from .results import Directory, Node, Result, Value
 
 
 __all__ = ['Adapter', 'EtcdAdapter']
@@ -60,23 +61,25 @@ class EtcdAdapter(Adapter):
 
     @classmethod
     def make_node(cls, data):
-        key = data['key']
-        kwargs = {
-            'modified_index': data['modifiedIndex'],
-            'created_index': data['createdIndex'],
-        }
+        try:
+            key = data['key']
+        except KeyError:
+            key, kwargs = u'/', {}
+        else:
+            kwargs = {'modified_index': int(data['modifiedIndex']),
+                      'created_index': int(data['createdIndex'])}
         ttl = data.get('ttl')
         if ttl is not None:
             kwargs.update(ttl=ttl, expiration=data['expiration'])
         if 'value' in data:
-            cls = ValueNode
+            node_cls = Value
             args = (data['value'],)
         elif data.get('dir', False):
-            cls = DirectoryNode
+            node_cls = Directory
             args = ([cls.make_node(n) for n in data.get('nodes', ())],)
         else:
-            cls, args = Node, ()
-        return cls(key, *args, **kwargs)
+            node_cls, args = Node, ()
+        return node_cls(key, *args, **kwargs)
 
     @classmethod
     def make_result(cls, data, headers=None):
@@ -93,13 +96,22 @@ class EtcdAdapter(Adapter):
             kwargs.update(etcd_index=int(headers['X-Etcd-Index']),
                           raft_index=int(headers['X-Raft-Index']),
                           raft_term=int(headers['X-Raft-Term']))
-        return Result.make(action, node, **kwargs)
+        return Result.__dispatch__(action)(node, **kwargs)
+
+    @classmethod
+    def make_error(cls, data, headers=None):
+        errno = data['errorCode']
+        message = data['message']
+        cause = data['cause']
+        index = data['index']
+        return Error.__dispatch__(errno)(message, cause, index)
 
     @classmethod
     def wrap_response(cls, res):
-        print res.json()
         if res.ok:
             return cls.make_result(res.json(), res.headers)
+        else:
+            raise cls.make_error(res.json())
 
     @staticmethod
     def build_args(args=None, **kwargs):
@@ -163,10 +175,10 @@ class EtcdAdapter(Adapter):
                prev_value=None, prev_index=None, timeout=None):
         """Requests to delete a node by the given key."""
         url = self.make_key_url(key)
-        data = self.build_args(dir=(bool, dir or None),
-                               recursive=(bool, recursive or None),
-                               prev_value=(unicode, prev_value),
-                               prev_index=(int, prev_index))
+        params = self.build_args(dir=(bool, dir or None),
+                                 recursive=(bool, recursive or None),
+                                 prev_value=(unicode, prev_value),
+                                 prev_index=(int, prev_index))
         with self.session as s:
-            res = s.delete(url, data=data, timeout=timeout)
+            res = s.delete(url, params=params, timeout=timeout)
         return self.wrap_response(res)
