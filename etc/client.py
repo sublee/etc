@@ -6,6 +6,7 @@
 from __future__ import absolute_import
 
 from .adapters import EtcdAdapter
+from .helpers import gen_repr
 
 
 __all__ = ['Client']
@@ -21,7 +22,7 @@ class Client(object):
         return self._adapter.url
 
     def __repr__(self):
-        return u'<etc.%s \'%s\'>' % (self.__class__.__name__, self.url)
+        return gen_repr(self.__class__, u"'{0}'", self.url, short=True)
 
     def get(self, key, recursive=False, sorted=False, quorum=False,
             timeout=None):

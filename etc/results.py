@@ -7,7 +7,7 @@ from __future__ import absolute_import
 
 from six import with_metaclass
 
-from .helpers import registry
+from .helpers import gen_repr, registry
 
 
 __all__ = ['ComparedThenDeleted', 'ComparedThenSwapped', 'Created', 'Deleted',
@@ -37,6 +37,7 @@ class Node(object):
 
 
 class Value(Node):
+    """An etcd value node."""
 
     __slots__ = Node.__slots__ + ('value',)
 
@@ -44,8 +45,17 @@ class Value(Node):
         super(Value, self).__init__(key, *args, **kwargs)
         self.value = value
 
+    def __repr__(self):
+        options = [('modified_index', self.modified_index),
+                   ('created_index', self.created_index),
+                   ('ttl', self.ttl),
+                   ('expiration', self.expiration)]
+        return gen_repr(self.__class__, u'{0}={1}',
+                        self.key, self.value, options=options)
+
 
 class Directory(Node):
+    """An etcd directory node."""
 
     __slots__ = Node.__slots__ + ('nodes',)
 
@@ -53,8 +63,20 @@ class Directory(Node):
         super(Directory, self).__init__(key, *args, **kwargs)
         self.nodes = nodes
 
+    def __repr__(self):
+        key = self.key
+        if not key.endswith(u'/'):
+            key += u'/'
+        return gen_repr(self.__class__, u'{0}', self.key, short=True)
+
 
 class Result(with_metaclass(registry('action'))):
+    """A successful etcd result.
+
+    Don't use this class directly.  There're specific sub classes to be used
+    instead.
+
+    """
 
     __slots__ = ('node', 'prev_node', 'etcd_index', 'raft_index', 'raft_term')
 
@@ -79,9 +101,18 @@ class Result(with_metaclass(registry('action'))):
     value = property(lambda x: x.node.value)
     nodes = property(lambda x: x.node.nodes)
 
+    def __repr__(self):
+        return gen_repr(self.__class__, u'{0}', self.node, options=[
+            ('prev_node', self.prev_node),
+            ('etcd_index', self.etcd_index),
+            ('raft_index', self.raft_index),
+            ('raft_term', self.raft_term),
+        ])
+
 
 def def_(name, action=NotImplemented, base=Result):
     return type(name, (base,), {'action': action})
+
 
 Got = def_('Got', 'get')
 Set = def_('Set', 'set')

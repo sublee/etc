@@ -87,7 +87,7 @@ class EtcdAdapter(Adapter):
         node = cls.make_node(data['node'])
         kwargs = {}
         try:
-            prev_node_data = data['prev_node']
+            prev_node_data = data['prevNode']
         except KeyError:
             pass
         else:
@@ -114,10 +114,9 @@ class EtcdAdapter(Adapter):
             raise cls.make_error(res.json())
 
     @staticmethod
-    def build_args(args=None, **kwargs):
-        if args is None:
-            args = {}
-        for key, (type_, value) in kwargs.items():
+    def build_args(typed_args):
+        args = {}
+        for key, (type_, value) in typed_args.items():
             if value is None:
                 continue
             if type_ is bool:
@@ -130,11 +129,13 @@ class EtcdAdapter(Adapter):
             wait=False, wait_index=0, timeout=None):
         """Requests to get a node by the given key."""
         url = self.make_key_url(key)
-        params = self.build_args(recursive=(bool, recursive or None),
-                                 sorted=(bool, sorted or None),
-                                 quorum=(bool, quorum or None),
-                                 wait=(bool, wait or None),
-                                 wait_index=(int, wait_index))
+        params = self.build_args({
+            'recursive': (bool, recursive or None),
+            'sorted': (bool, sorted or None),
+            'quorum': (bool, quorum or None),
+            'wait': (bool, wait or None),
+            'waitIndex': (int, wait_index),
+        })
         with self.session as s:
             res = s.get(url, params=params, timeout=timeout)
         return self.wrap_response(res)
@@ -147,12 +148,14 @@ class EtcdAdapter(Adapter):
         if value is not None and not isinstance(value, unicode):
             raise TypeError('Set unicode value')
         url = self.make_key_url(key)
-        data = self.build_args(value=(unicode, value),
-                               dir=(bool, dir or None),
-                               ttl=(int, ttl),
-                               prev_value=(unicode, prev_value),
-                               prev_index=(int, prev_index),
-                               prev_exist=(bool, prev_exist))
+        data = self.build_args({
+            'value': (unicode, value),
+            'dir': (bool, dir or None),
+            'ttl': (int, ttl),
+            'prevValue': (unicode, prev_value),
+            'prevIndex': (int, prev_index),
+            'prevExist': (bool, prev_exist),
+        })
         with self.session as s:
             res = s.put(url, data=data, timeout=timeout)
         return self.wrap_response(res)
@@ -164,9 +167,11 @@ class EtcdAdapter(Adapter):
         if value is not None and not isinstance(value, unicode):
             raise TypeError('Set unicode value')
         url = self.make_key_url(key)
-        data = self.build_args(value=(unicode, value),
-                               dir=(bool, dir or None),
-                               ttl=(int, ttl))
+        data = self.build_args({
+            'value': (unicode, value),
+            'dir': (bool, dir or None),
+            'ttl': (int, ttl),
+        })
         with self.session as s:
             res = s.post(url, data=data, timeout=timeout)
         return self.wrap_response(res)
@@ -175,10 +180,12 @@ class EtcdAdapter(Adapter):
                prev_value=None, prev_index=None, timeout=None):
         """Requests to delete a node by the given key."""
         url = self.make_key_url(key)
-        params = self.build_args(dir=(bool, dir or None),
-                                 recursive=(bool, recursive or None),
-                                 prev_value=(unicode, prev_value),
-                                 prev_index=(int, prev_index))
+        params = self.build_args({
+            'dir': (bool, dir or None),
+            'recursive': (bool, recursive or None),
+            'prevValue': (unicode, prev_value),
+            'prevIndex': (int, prev_index),
+        })
         with self.session as s:
             res = s.delete(url, params=params, timeout=timeout)
         return self.wrap_response(res)

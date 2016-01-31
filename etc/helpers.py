@@ -5,8 +5,10 @@
 """
 from __future__ import absolute_import
 
+import io
 
-__all__ = ['registry']
+
+__all__ = ['gen_repr', 'registry']
 
 
 def registry(attr, base=type):
@@ -26,3 +28,21 @@ def registry(attr, base=type):
             except KeyError:
                 raise ValueError('Unknown %s: %s' % (attr, key))
     return Registry
+
+
+def gen_repr(cls, template, *args, **kwargs):
+    """Generates a string for :func:`repr`."""
+    buf = io.StringIO()
+    buf.write(u'<')
+    buf.write(cls.__module__.decode() if kwargs.pop('full', False) else u'etc')
+    buf.write(u'.')
+    buf.write(cls.__name__.decode())
+    if not kwargs.pop('dense', False):
+        buf.write(u' ')
+    buf.write(template.format(*args, **kwargs))
+    options = kwargs.pop('options', [])
+    for attr, value in options:
+        if value is not None:
+            buf.write(u' %s=%s' % (attr, value))
+    buf.write(u'>')
+    return buf.getvalue()

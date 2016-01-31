@@ -7,7 +7,7 @@ from __future__ import absolute_import
 
 from six import with_metaclass
 
-from .helpers import registry
+from .helpers import gen_repr, registry
 
 
 __all__ = ['CommandError', 'DirNotEmpty', 'Error', 'EtcdError',
@@ -18,30 +18,39 @@ __all__ = ['CommandError', 'DirNotEmpty', 'Error', 'EtcdError',
 
 
 class Error(with_metaclass(registry('errno'), Exception)):
+    """A failed etcd result.  It is also can be raised as a Python exception.
 
-    __slots__ = ('index', 'message', 'cause')
+    Don't use this class directly.  There're specific sub classes to be used
+    instead.
+
+    """
+
+    __slots__ = ('message', 'cause', 'index')
 
     errno = NotImplemented
 
     def __init__(self, message=None, cause=None, index=None):
-        self.messge = message
+        self.message = message
         self.cause = cause
         self.index = index
 
-    __registry__ = {}
+    @property
+    def args(self):
+        return (self.message, self.cause, self.index)
 
-    @classmethod
-    def make(cls, errno, *args, **kwargs):
-        try:
-            sub_cls = cls.__registry__[errno]
-        except KeyError:
-            raise ValueError('Unknown errno: %s' % errno)
-        else:
-            return sub_cls(*args, **kwargs)
+    def __unicode__(self):
+        return u'[%d] %s (%s)' % (self.errno, self.message, self.cause)
+
+    def __str__(self):
+        return unicode(self).encode()
+
+    def __repr__(self):
+        return gen_repr(self.__class__, u'{0}', self, dense=True)
 
 
 def def_(name, errno=NotImplemented, base=Error):
     return type(name, (base,), {'errno': errno})
+
 
 CommandError = def_('CommandError')
 PostFormError = def_('PostFormError')
