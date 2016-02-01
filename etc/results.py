@@ -63,6 +63,10 @@ class Directory(Node):
         super(Directory, self).__init__(key, *args, **kwargs)
         self.nodes = nodes
 
+    @property
+    def values(self):
+        return [node.value for node in self.nodes]
+
     def __repr__(self):
         key = self.key
         if not key.endswith(u'/'):
@@ -100,6 +104,7 @@ class Result(with_metaclass(registry('action'))):
     expires_at = property(lambda x: x.node.expires_at)
     value = property(lambda x: x.node.value)
     nodes = property(lambda x: x.node.nodes)
+    values = property(lambda x: x.node.values)
 
     def __repr__(self):
         return gen_repr(self.__class__, u'{0}', self.node, options=[

@@ -21,7 +21,7 @@ class Adapter(object):
     """An interface to implement several essential raw methods of etcd."""
 
     def get(self, key, recursive=False, sorted=False, quorum=False,
-            wait=False, wait_index=0, timeout=None):
+            wait=False, wait_index=None, timeout=None):
         raise NotImplementedError
 
     def set(self, key, value=None, dir=False, ttl=None,
@@ -126,7 +126,7 @@ class EtcdAdapter(Adapter):
         return args
 
     def get(self, key, recursive=False, sorted=False, quorum=False,
-            wait=False, wait_index=0, timeout=None):
+            wait=False, wait_index=None, timeout=None):
         """Requests to get a node by the given key."""
         url = self.make_key_url(key)
         params = self.build_args({
