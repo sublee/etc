@@ -100,3 +100,8 @@ def test_append(etcd, spawn_later):
     assert r.value == u'four'
     r = etcd.get('/etc', sorted=True)
     assert r.values == [u'one', u'two', u'three', u'four']
+
+
+def test_timeout(etcd):
+    with pytest.raises(etc.TimedOut):
+        etcd.wait('/etc', timeout=0.1)

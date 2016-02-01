@@ -14,7 +14,7 @@ __all__ = ['CommandError', 'DirNotEmpty', 'Error', 'EtcdError',
            'EventIndexCleared', 'IndexNaN', 'InvalidField', 'InvalidForm',
            'KeyNotFound', 'LeaderElect', 'NodeExist', 'NotDir', 'NotFile',
            'PostFormError', 'PrevValueRequired', 'RaftError', 'RaftInternal',
-           'RootROnly', 'TestFailed', 'TTLNaN', 'WatcherCleared']
+           'RootROnly', 'TestFailed', 'TimedOut', 'TTLNaN', 'WatcherCleared']
 
 
 class Error(with_metaclass(registry('errno'), Exception)):

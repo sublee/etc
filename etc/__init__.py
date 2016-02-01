@@ -22,7 +22,7 @@ from .errors import (
     CommandError, DirNotEmpty, Error, EtcdError, EventIndexCleared, IndexNaN,
     InvalidField, InvalidForm, KeyNotFound, LeaderElect, NodeExist, NotDir,
     NotFile, PostFormError, PrevValueRequired, RaftError, RaftInternal,
-    RootROnly, TestFailed, TTLNaN, WatcherCleared)
+    RootROnly, TestFailed, TimedOut, TTLNaN, WatcherCleared)
 from .results import (
     ComparedThenDeleted, ComparedThenSwapped, Created, Deleted, Directory,
     Expired, Got, Node, Result, Set, Updated, Value)
@@ -38,8 +38,8 @@ __all__ = [
     'CommandError', 'DirNotEmpty', 'Error', 'EtcdError', 'EventIndexCleared',
     'IndexNaN', 'InvalidField', 'InvalidForm', 'KeyNotFound', 'LeaderElect',
     'NodeExist', 'NotDir', 'NotFile', 'PostFormError', 'PrevValueRequired',
-    'RaftError', 'RaftInternal', 'RootROnly', 'TestFailed', 'TTLNaN',
-    'WatcherCleared',
+    'RaftError', 'RaftInternal', 'RootROnly', 'TestFailed', 'TimedOut',
+    'TTLNaN', 'WatcherCleared',
     # etc.results
     'ComparedThenDeleted', 'ComparedThenSwapped', 'Created', 'Deleted',
     'Directory', 'Expired', 'Got', 'Node', 'Result', 'Set', 'Updated', 'Value',
