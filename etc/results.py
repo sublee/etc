@@ -11,7 +11,7 @@ from .helpers import gen_repr, registry
 
 
 __all__ = ['ComparedThenDeleted', 'ComparedThenSwapped', 'Created', 'Deleted',
-           'Directory', 'Expired', 'Got', 'Node', 'Result', 'Set',
+           'Directory', 'EtcdResult', 'Expired', 'Got', 'Node', 'Set',
            'Updated', 'Value']
 
 
@@ -37,7 +37,7 @@ class Node(object):
 
 
 class Value(Node):
-    """An etcd value node."""
+    """An etcd value Node."""
 
     __slots__ = Node.__slots__ + ('value',)
 
@@ -55,7 +55,7 @@ class Value(Node):
 
 
 class Directory(Node):
-    """An etcd directory node."""
+    """An etcd directory Node."""
 
     __slots__ = Node.__slots__ + ('nodes',)
 
@@ -74,7 +74,7 @@ class Directory(Node):
         return gen_repr(self.__class__, u'{0}', self.key, short=True)
 
 
-class Result(with_metaclass(registry('action'))):
+class EtcdResult(with_metaclass(registry('action'))):
     """A successful etcd result.
 
     Don't use this class directly.  There're specific sub classes to be used
@@ -115,7 +115,7 @@ class Result(with_metaclass(registry('action'))):
         ])
 
 
-def def_(name, action=NotImplemented, base=Result):
+def def_(name, action=NotImplemented, base=EtcdResult):
     return type(name, (base,), {'action': action})
 
 

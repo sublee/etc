@@ -5,25 +5,32 @@
 """
 from __future__ import absolute_import
 
+import socket
+
 from six import with_metaclass
 
 from .helpers import gen_repr, registry
 
 
-__all__ = ['CommandError', 'DirNotEmpty', 'Error', 'EtcdError',
-           'EventIndexCleared', 'IndexNaN', 'InvalidField', 'InvalidForm',
-           'KeyNotFound', 'LeaderElect', 'NodeExist', 'NotDir', 'NotFile',
-           'PostFormError', 'PrevValueRequired', 'RaftError', 'RaftInternal',
-           'RootROnly', 'TestFailed', 'TimedOut', 'TTLNaN', 'WatcherCleared']
+__all__ = ['ConnectionError', 'ConnectionRefused', 'DirNotEmpty', 'EtcdError',
+           'EtcException', 'EventIndexCleared', 'ExistingPeerAddr', 'IndexNaN',
+           'IndexOrValueRequired', 'IndexValueMutex', 'InvalidActiveSize',
+           'InvalidField', 'InvalidForm', 'InvalidRemoveDelay',
+           'KeyIsPreserved', 'KeyNotFound', 'LeaderElect', 'NameRequired',
+           'NodeExist', 'NoMorePeer', 'NotDir', 'NotFile', 'PrevValueRequired',
+           'RaftInternal', 'RootROnly', 'StandbyInternal', 'TestFailed',
+           'TimedOut', 'TimeoutNaN', 'TTLNaN', 'Unauthorized',
+           'ValueOrTTLRequired', 'ValueRequired', 'WatcherCleared']
 
 
-class Error(with_metaclass(registry('errno'), Exception)):
-    """A failed etcd result.  It is also can be raised as a Python exception.
+class EtcException(Exception):
+    """A base exception for all exceptions in :mod:`etc`."""
 
-    Don't use this class directly.  There're specific sub classes to be used
-    instead.
+    pass
 
-    """
+
+class EtcdError(with_metaclass(registry('errno'), EtcException)):
+    """A failed etcd result."""
 
     __slots__ = ('message', 'cause', 'index')
 
@@ -38,6 +45,10 @@ class Error(with_metaclass(registry('errno'), Exception)):
     def args(self):
         return (self.message, self.cause, self.index)
 
+    @property
+    def etcd_index(self):
+        return self.index
+
     def __unicode__(self):
         return u'[%d] %s (%s)' % (self.errno, self.message, self.cause)
 
@@ -48,31 +59,64 @@ class Error(with_metaclass(registry('errno'), Exception)):
         return gen_repr(self.__class__, u'{0}', self, dense=True)
 
 
-def def_(name, errno=NotImplemented, base=Error):
+def def_etcd_error(name, errno=NotImplemented, base=EtcdError):
     return type(name, (base,), {'errno': errno})
 
 
-CommandError = def_('CommandError')
-PostFormError = def_('PostFormError')
-RaftError = def_('RaftError')
-EtcdError = def_('EtcdError')
+# Command related errors.
+KeyNotFound = def_etcd_error('KeyNotFound', 100)
+TestFailed = def_etcd_error('TestFailed', 101)
+NotFile = def_etcd_error('NotFile', 102)
+NoMorePeer = def_etcd_error('NoMorePeer', 103)  # private
+NotDir = def_etcd_error('NotDir', 104)
+NodeExist = def_etcd_error('NodeExist', 105)
+KeyIsPreserved = def_etcd_error('KeyIsPreserved', 106)  # private
+RootROnly = def_etcd_error('RootROnly', 107)
+DirNotEmpty = def_etcd_error('DirNotEmpty', 108)
+ExistingPeerAddr = def_etcd_error('ExistingPeerAddr', 109)  # private
+Unauthorized = def_etcd_error('Unauthorized', 110)
 
-KeyNotFound = def_('KeyNotFound', 100, CommandError)
-TestFailed = def_('TestFailed', 101, CommandError)
-NotFile = def_('NotFile', 102, CommandError)
-NotDir = def_('NotDir', 104, CommandError)
-NodeExist = def_('NodeExist', 105, CommandError)
-RootROnly = def_('RootROnly', 107, CommandError)
-DirNotEmpty = def_('DirNotEmpty', 108, CommandError)
 
-PrevValueRequired = def_('PrevValueRequired', 201, PostFormError)
-TTLNaN = def_('TTLNaN', 202, PostFormError)
-IndexNaN = def_('IndexNaN', 203, PostFormError)
-InvalidField = def_('InvalidField', 209, PostFormError)
-InvalidForm = def_('InvalidForm', 210, PostFormError)
+# POST form related errors.
+ValueRequired = def_etcd_error('ValueRequired', 200)  # private
+PrevValueRequired = def_etcd_error('PrevValueRequired', 201)
+TTLNaN = def_etcd_error('TTLNaN', 202)
+IndexNaN = def_etcd_error('IndexNaN', 203)
+ValueOrTTLRequired = def_etcd_error('ValueOrTTLRequired', 204)  # private
+TimeoutNaN = def_etcd_error('TimeoutNaN', 205)  # private
+NameRequired = def_etcd_error('NameRequired', 206)  # private
+IndexOrValueRequired = def_etcd_error('IndexOrValueRequired', 207)  # private
+IndexValueMutex = def_etcd_error('IndexValueMutex', 208)  # private
+InvalidField = def_etcd_error('InvalidField', 209)
+InvalidForm = def_etcd_error('InvalidForm', 210)
 
-RaftInternal = def_('RaftInternal', 300, RaftError)
-LeaderElect = def_('LeaderElect', 301, RaftError)
 
-WatcherCleared = def_('WatcherCleared', 400, EtcdError)
-EventIndexCleared = def_('EventIndexCleared', 401, EtcdError)
+# Raft related errors.
+RaftInternal = def_etcd_error('RaftInternal', 300)
+LeaderElect = def_etcd_error('LeaderElect', 301)
+
+
+# etcd related errors.
+WatcherCleared = def_etcd_error('WatcherCleared', 400)
+EventIndexCleared = def_etcd_error('EventIndexCleared', 401)
+StandbyInternal = def_etcd_error('StandbyInternal', 402)  # private
+InvalidActiveSize = def_etcd_error('InvalidActiveSize', 403)  # private
+InvalidRemoveDelay = def_etcd_error('InvalidRemoveDelay', 404)  # private
+
+
+class ConnectionError(EtcException, socket.error):
+    """A TCP connection related error."""
+
+    pass
+
+
+class TimedOut(ConnectionError):
+    """A request timed out."""
+
+    pass
+
+
+class ConnectionRefused(ConnectionError):
+    """The etcd server refused the connection."""
+
+    pass

@@ -19,13 +19,16 @@ from __future__ import absolute_import
 from .__about__ import __version__  # noqa
 from .client import Client
 from .errors import (
-    CommandError, DirNotEmpty, Error, EtcdError, EventIndexCleared, IndexNaN,
-    InvalidField, InvalidForm, KeyNotFound, LeaderElect, NodeExist, NotDir,
-    NotFile, PostFormError, PrevValueRequired, RaftError, RaftInternal,
-    RootROnly, TestFailed, TimedOut, TTLNaN, WatcherCleared)
+    ConnectionError, ConnectionRefused, DirNotEmpty, EtcdError, EtcException,
+    EventIndexCleared, ExistingPeerAddr, IndexNaN, IndexOrValueRequired,
+    IndexValueMutex, InvalidActiveSize, InvalidField, InvalidForm,
+    InvalidRemoveDelay, KeyIsPreserved, KeyNotFound, LeaderElect, NameRequired,
+    NodeExist, NoMorePeer, NotDir, NotFile, PrevValueRequired, RaftInternal,
+    RootROnly, StandbyInternal, TestFailed, TimedOut, TimeoutNaN, TTLNaN,
+    Unauthorized, ValueOrTTLRequired, ValueRequired, WatcherCleared)
 from .results import (
     ComparedThenDeleted, ComparedThenSwapped, Created, Deleted, Directory,
-    Expired, Got, Node, Result, Set, Updated, Value)
+    EtcdResult, Expired, Got, Node, Set, Updated, Value)
 # from .errors import
 
 
@@ -35,14 +38,18 @@ __all__ = [
     # etc.client
     'Client',
     # etc.errors
-    'CommandError', 'DirNotEmpty', 'Error', 'EtcdError', 'EventIndexCleared',
-    'IndexNaN', 'InvalidField', 'InvalidForm', 'KeyNotFound', 'LeaderElect',
-    'NodeExist', 'NotDir', 'NotFile', 'PostFormError', 'PrevValueRequired',
-    'RaftError', 'RaftInternal', 'RootROnly', 'TestFailed', 'TimedOut',
-    'TTLNaN', 'WatcherCleared',
+    'ConnectionError', 'ConnectionRefused', 'DirNotEmpty', 'EtcdError',
+    'EtcException', 'EventIndexCleared', 'ExistingPeerAddr', 'IndexNaN',
+    'IndexOrValueRequired', 'IndexValueMutex', 'InvalidActiveSize',
+    'InvalidField', 'InvalidForm', 'InvalidRemoveDelay', 'KeyIsPreserved',
+    'KeyNotFound', 'LeaderElect', 'NameRequired', 'NodeExist', 'NoMorePeer',
+    'NotDir', 'NotFile', 'PrevValueRequired', 'RaftInternal', 'RootROnly',
+    'StandbyInternal', 'TestFailed', 'TimedOut', 'TimeoutNaN', 'TTLNaN',
+    'Unauthorized', 'ValueOrTTLRequired', 'ValueRequired', 'WatcherCleared',
     # etc.results
     'ComparedThenDeleted', 'ComparedThenSwapped', 'Created', 'Deleted',
-    'Directory', 'Expired', 'Got', 'Node', 'Result', 'Set', 'Updated', 'Value',
+    'Directory', 'EtcdResult', 'Expired', 'Got', 'Node', 'Set', 'Updated',
+    'Value',
 ]
 
 

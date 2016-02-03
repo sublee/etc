@@ -5,13 +5,17 @@
 """
 from __future__ import absolute_import
 
+from contextlib import contextmanager
 import io
+import sys
 from urlparse import urljoin
 
 import requests
+from requests.packages.urllib3.exceptions import ReadTimeoutError
+from six import reraise
 
-from .errors import Error
-from .results import Directory, Node, Result, Value
+from .errors import EtcdError, TimedOut
+from .results import Directory, EtcdResult, Node, Value
 
 
 __all__ = ['Adapter', 'EtcdAdapter']
@@ -42,7 +46,22 @@ class EtcdAdapter(Adapter):
     def __init__(self, url=u'http://127.0.0.1:4001', default_timeout=60):
         self.url = url
         self.default_timeout = default_timeout
-        self.session = requests.Session()
+        self._session = requests.Session()
+
+    @contextmanager
+    def session(self):
+        """Manages a :mod:`requests` session context.  It wraps some of
+        exceptions from :mod:`requests` by an :mod:`etc` exception.
+        """
+        try:
+            with self._session as session:
+                yield session
+        except requests.ConnectionError as exc:
+            exc_info = sys.exc_info()
+            internal_exc = exc.args[0]
+            if isinstance(internal_exc, ReadTimeoutError):
+                raise TimedOut
+            reraise(*exc_info)
 
     def make_url(self, path, api_root=u'/v2/'):
         """Gets a full URL from just path."""
@@ -96,7 +115,7 @@ class EtcdAdapter(Adapter):
             kwargs.update(etcd_index=int(headers['X-Etcd-Index']),
                           raft_index=int(headers['X-Raft-Index']),
                           raft_term=int(headers['X-Raft-Term']))
-        return Result.__dispatch__(action)(node, **kwargs)
+        return EtcdResult.__dispatch__(action)(node, **kwargs)
 
     @classmethod
     def make_error(cls, data, headers=None):
@@ -104,7 +123,7 @@ class EtcdAdapter(Adapter):
         message = data['message']
         cause = data['cause']
         index = data['index']
-        return Error.__dispatch__(errno)(message, cause, index)
+        return EtcdError.__dispatch__(errno)(message, cause, index)
 
     @classmethod
     def wrap_response(cls, res):
@@ -136,8 +155,20 @@ class EtcdAdapter(Adapter):
             'wait': (bool, wait or None),
             'waitIndex': (int, wait_index),
         })
-        with self.session as s:
-            res = s.get(url, params=params, timeout=timeout)
+        if wait and timeout is None:
+            # Wait forever although :exc:`TimedOut` thrown.
+            while True:
+                try:
+                    with self.session() as s:
+                        res = s.get(url, params=params)
+                except TimedOut:
+                    continue
+                else:
+                    break
+        else:
+            # Raise :exc:`TimedOut` if thrown.
+            with self.session() as s:
+                res = s.get(url, params=params, timeout=timeout)
         return self.wrap_response(res)
 
     def set(self, key, value=None, dir=False, ttl=None,
@@ -156,7 +187,7 @@ class EtcdAdapter(Adapter):
             'prevIndex': (int, prev_index),
             'prevExist': (bool, prev_exist),
         })
-        with self.session as s:
+        with self.session() as s:
             res = s.put(url, data=data, timeout=timeout)
         return self.wrap_response(res)
 
@@ -172,7 +203,7 @@ class EtcdAdapter(Adapter):
             'dir': (bool, dir or None),
             'ttl': (int, ttl),
         })
-        with self.session as s:
+        with self.session() as s:
             res = s.post(url, data=data, timeout=timeout)
         return self.wrap_response(res)
 
@@ -186,6 +217,6 @@ class EtcdAdapter(Adapter):
             'prevValue': (unicode, prev_value),
             'prevIndex': (int, prev_index),
         })
-        with self.session as s:
+        with self.session() as s:
             res = s.delete(url, params=params, timeout=timeout)
         return self.wrap_response(res)
