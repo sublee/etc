@@ -6,15 +6,23 @@ etc
 An etcd client library for humans.
 
 """
+import os
+
 from setuptools import setup
+from setuptools.command.test import test
 
 
-about = {'__version__': '0.0.0-dev',
-         '__license__': 'BSD',
-         '__author__': 'Heungsub Lee',
-         '__author_email__': 'sub@subl.ee',
-         '__url__': 'https://github.com/sublee/etc',
-         '__description__': 'An etcd client library for humans'}
+# Include __about__.py.
+__dir__ = os.path.dirname(__file__)
+about = {}
+with open(os.path.join(__dir__, 'etc', '__about__.py')) as f:
+    exec(f.read(), about)
+
+
+# Use pytest instead.
+def run_tests(self):
+    raise SystemExit(__import__('pytest').main(['-v']))
+test.run_tests = run_tests
 
 
 setup(
@@ -35,10 +43,14 @@ setup(
                  'Operating System :: OS Independent',
                  'Programming Language :: Python',
                  'Programming Language :: Python :: 2',
+                 'Programming Language :: Python :: 2.6',
                  'Programming Language :: Python :: 2.7',
+                 'Programming Language :: Python :: 3.3',
                  'Programming Language :: Python :: 3.4',
                  'Programming Language :: Python :: 3.5',
                  'Programming Language :: Python :: Implementation :: CPython',
                  'Programming Language :: Python :: Implementation :: PyPy',
                  'Topic :: Software Development'],
+    tests_require=['pytest'],
+    test_suite='...',
 )
