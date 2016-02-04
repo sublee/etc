@@ -12,6 +12,7 @@ import sys
 
 import requests
 from requests.packages.urllib3.exceptions import ReadTimeoutError
+import six
 from six import reraise
 from six.moves.urllib.parse import urljoin
 
@@ -179,14 +180,14 @@ class EtcdAdapter(Adapter):
         """Requests to create an ordered node into a node by the given key."""
         if (value is None) == (not dir):
             raise ValueError('Set value or make as directory')
-        if value is not None and not isinstance(value, unicode):
-            raise TypeError('Set unicode value')
+        if value is not None and not isinstance(value, six.text_type):
+            raise TypeError('Set %s value' % six.text_type.__name__)
         url = self.make_key_url(key)
         data = self.build_args({
-            'value': (unicode, value),
+            'value': (six.text_type, value),
             'dir': (bool, dir or None),
             'ttl': (int, ttl),
-            'prevValue': (unicode, prev_value),
+            'prevValue': (six.text_type, prev_value),
             'prevIndex': (int, prev_index),
             'prevExist': (bool, prev_exist),
         })
@@ -198,11 +199,11 @@ class EtcdAdapter(Adapter):
         """Requests to create an ordered node into a node by the given key."""
         if (value is None) == (not dir):
             raise ValueError('Set value or make as directory')
-        if value is not None and not isinstance(value, unicode):
-            raise TypeError('Set unicode value')
+        if value is not None and not isinstance(value, six.text_type):
+            raise TypeError('Set %s value' % six.text_type.__name__)
         url = self.make_key_url(key)
         data = self.build_args({
-            'value': (unicode, value),
+            'value': (six.text_type, value),
             'dir': (bool, dir or None),
             'ttl': (int, ttl),
         })
@@ -217,7 +218,7 @@ class EtcdAdapter(Adapter):
         params = self.build_args({
             'dir': (bool, dir or None),
             'recursive': (bool, recursive or None),
-            'prevValue': (unicode, prev_value),
+            'prevValue': (six.text_type, prev_value),
             'prevIndex': (int, prev_index),
         })
         with self.session() as s:
