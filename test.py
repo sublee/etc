@@ -4,6 +4,7 @@ import os
 import time
 
 import pytest
+from six import b, u
 
 import etc
 
@@ -52,16 +53,16 @@ def test_set_only_unicode(etcd):
     with pytest.raises(TypeError):
         etcd.set('/etc', 42)
     with pytest.raises(TypeError):
-        etcd.set('/etc', '42')
-    assert etcd.set('/etc', u'42').value == u'42'
+        etcd.set('/etc', b('42'))
+    assert etcd.set('/etc', u('42')).value == u('42')
 
 
 def test_get_set_delete(etcd):
-    r1 = etcd.set('/etc', u'Hello, world')
+    r1 = etcd.set('/etc', u('Hello, world'))
     assert isinstance(r1, etc.Set)
     r2 = etcd.get('/etc')
     assert isinstance(r2, etc.Got)
-    assert r2.value == u'Hello, world'
+    assert r2.value == u('Hello, world')
     assert r1.etcd_index == r2.modified_index
     r3 = etcd.delete('/etc')
     assert isinstance(r3, etc.Deleted)
@@ -70,36 +71,36 @@ def test_get_set_delete(etcd):
 
 
 def test_wait(etcd, spawn_later):
-    etcd.set('/etc', u'one')
-    spawn_later(0.1, etcd.set, '/etc', u'two')
+    etcd.set('/etc', u('one'))
+    spawn_later(0.1, etcd.set, '/etc', u('two'))
     r = etcd.get('/etc')
-    assert r.value == u'one'
+    assert r.value == u('one')
     r = etcd.wait('/etc', r.index + 1)
-    assert r.value == u'two'
-    spawn_later(0.1, etcd.set, '/etc', u'three')
-    spawn_later(0.2, etcd.set, '/etc', u'four')
+    assert r.value == u('two')
+    spawn_later(0.1, etcd.set, '/etc', u('three'))
+    spawn_later(0.2, etcd.set, '/etc', u('four'))
     r = etcd.wait('/etc', r.index + 1)
-    assert r.value == u'three'
+    assert r.value == u('three')
     r = etcd.wait('/etc', r.index + 1)
-    assert r.value == u'four'
+    assert r.value == u('four')
 
 
 def test_append(etcd, spawn_later):
     r = etcd.set('/etc', dir=True)
-    spawn_later(0.1, etcd.append, '/etc', u'one')
-    spawn_later(0.2, etcd.append, '/etc', u'two')
-    spawn_later(0.3, etcd.append, '/etc', u'three')
-    spawn_later(0.4, etcd.append, '/etc', u'four')
+    spawn_later(0.1, etcd.append, '/etc', u('one'))
+    spawn_later(0.2, etcd.append, '/etc', u('two'))
+    spawn_later(0.3, etcd.append, '/etc', u('three'))
+    spawn_later(0.4, etcd.append, '/etc', u('four'))
     r = etcd.wait('/etc', r.index + 1, recursive=True)
-    assert r.value == u'one'
+    assert r.value == u('one')
     r = etcd.wait('/etc', r.index + 1, recursive=True)
-    assert r.value == u'two'
+    assert r.value == u('two')
     r = etcd.wait('/etc', r.index + 1, recursive=True)
-    assert r.value == u'three'
+    assert r.value == u('three')
     r = etcd.wait('/etc', r.index + 1, recursive=True)
-    assert r.value == u'four'
+    assert r.value == u('four')
     r = etcd.get('/etc', sorted=True)
-    assert r.values == [u'one', u'two', u'three', u'four']
+    assert r.values == [u('one'), u('two'), u('three'), u('four')]
 
 
 def test_timeout(etcd):
