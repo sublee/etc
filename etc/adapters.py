@@ -7,6 +7,7 @@ from __future__ import absolute_import
 
 from contextlib import contextmanager
 import io
+import socket
 import sys
 from urlparse import urljoin
 
@@ -56,6 +57,8 @@ class EtcdAdapter(Adapter):
         try:
             with self._session as session:
                 yield session
+        except socket.timeout:
+            raise TimedOut
         except requests.ConnectionError as exc:
             exc_info = sys.exc_info()
             internal_exc = exc.args[0]
