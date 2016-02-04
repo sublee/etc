@@ -9,11 +9,11 @@ from contextlib import contextmanager
 import io
 import socket
 import sys
-from urlparse import urljoin
 
 import requests
 from requests.packages.urllib3.exceptions import ReadTimeoutError
 from six import reraise
+from six.moves.urllib.parse import urljoin
 
 from .errors import EtcdError, TimedOut
 from .results import Directory, EtcdResult, Node, Value
