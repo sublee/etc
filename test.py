@@ -9,9 +9,12 @@ from six import b, u
 import etc
 
 
-@pytest.fixture
-def etcd():
-    etcd = etc.etcd(os.getenv('ETC_TEST_ETCD_URL', 'http://127.0.0.1:4001'))
+ETC_TEST_ETCD_URL = os.getenv('ETC_TEST_ETCD_URL', 'http://127.0.0.1:4001')
+
+
+@pytest.fixture(params=[ETC_TEST_ETCD_URL, 'mock://etc'])
+def etcd(request):
+    etcd = etc.etcd(request.param)
     result = etcd.get('/', recursive=True)
     for node in result.nodes:
         dir_ = isinstance(node, etc.Directory)

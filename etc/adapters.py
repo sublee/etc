@@ -5,10 +5,16 @@
 """
 from __future__ import absolute_import
 
+from collections import OrderedDict
 from contextlib import contextmanager
+from datetime import datetime, timedelta
 import io
+import itertools
+from operator import getitem
+import os
 import socket
 import sys
+import threading
 
 import requests
 from requests.packages.urllib3.exceptions import ReadTimeoutError
@@ -224,3 +230,77 @@ class EtcdAdapter(Adapter):
         with self.session() as s:
             res = s.delete(url, params=params, timeout=timeout)
         return self.wrap_response(res)
+
+
+class MockAdapter(object):
+
+    def __init__(self, __):
+        self.storage = {}
+        self.events = {}
+        self.index = 0
+
+    def next_index(self):
+        self.index += 1
+        return self.index
+
+    def wake_waiters(self, key):
+        try:
+            event = self.events[key]
+        except KeyError:
+            pass
+        else:
+            event.set()
+            self.events.pop(key, None)
+
+    def split_key(self, key):
+        if key == '/':
+            return ()
+        key_chunks = os.path.split(key)
+        if key_chunks[0] == '/':
+            return key_chunks[1:]
+        else:
+            return key_chunks
+
+    def get(self, key, recursive=False, sorted=False, quorum=False,
+            wait=False, wait_index=None, timeout=None):
+        if wait:
+            event = self.events.setdefault(key, threading.Event())
+            event.wait()
+        key_chunks = self.split_key(key)
+        snapshots = reduce(getitem, key_chunks, self.storage)
+        index = snapshots.keys()[-1]
+        node = snapshots[index]
+        return node
+
+    def set(self, key, value=None, dir=False, ttl=None,
+            prev_value=None, prev_index=None, prev_exist=None, timeout=None):
+        key_chunks = self.split_key(key)
+        storage = reduce(getitem, key_chunks[:-1], self.storage)
+        node = storage.setdefault(key_chunks[-1], OrderedDict())
+        index = self.next_index()
+        if ttl is None:
+            expiration = None
+        else:
+            expiration = datetime.utcnow() + timedelta(ttl)
+        if dir:
+            node[index] = Directory(key, [], index, index, ttl, expiration)
+        else:
+            node[index] = Value(key, value, index, index, ttl, expiration)
+        self.wake_waiters(key)
+
+    def append(self, key, value=None, dir=False, ttl=None, timeout=None):
+        key_chunks = self.split_key(key)
+        storage = reduce(getitem, key_chunks, self.storage)
+        for x in itertools.count(len(storage)):
+            item_key = '%16d' % x
+            if item_key not in storage:
+                break
+        index = self.next_index()
+        storage[item_key] = (value, index, index)
+        self.wake_waiters(key)
+
+    def delete(self, key, dir=False, recursive=False,
+               prev_value=None, prev_index=None, timeout=None):
+        key_chunks = self.split_key(key)
+        storage = reduce(getitem, key_chunks[:-1], self.storage)
+        storage.pop(key_chunks[-1])
