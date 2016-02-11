@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import multiprocessing
 import os
+import threading
 import time
 
 import pytest
@@ -33,9 +33,9 @@ def etcd(request):
 @pytest.fixture
 def spawn(request):
     def spawn_f(f, *args, **kwargs):
-        proc = multiprocessing.Process(target=f, args=args, kwargs=kwargs)
-        proc.start()
-        request.addfinalizer(proc.terminate)
+        thread = threading.Thread(target=f, args=args, kwargs=kwargs)
+        thread.start()
+        request.addfinalizer(thread.join)
     return spawn_f
 
 

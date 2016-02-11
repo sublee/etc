@@ -7,7 +7,7 @@ from __future__ import absolute_import
 
 import socket
 
-from six import with_metaclass
+import six
 
 from .helpers import gen_repr, registry
 
@@ -29,7 +29,7 @@ class EtcException(Exception):
     pass
 
 
-class EtcdError(with_metaclass(registry('errno'), EtcException)):
+class EtcdError(six.with_metaclass(registry('errno'), EtcException)):
     """A failed etcd result."""
 
     __slots__ = ('message', 'cause', 'index')

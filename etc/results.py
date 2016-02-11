@@ -5,7 +5,7 @@
 """
 from __future__ import absolute_import
 
-from six import with_metaclass
+import six
 
 from .helpers import gen_repr, registry
 
@@ -71,10 +71,11 @@ class Directory(Node):
         key = self.key
         if not key.endswith(u'/'):
             key += u'/'
-        return gen_repr(self.__class__, u'{0}', self.key, short=True)
+        return gen_repr(self.__class__, u'{0}[{1}]',
+                        self.key, len(self.nodes), short=True)
 
 
-class EtcdResult(with_metaclass(registry('action'))):
+class EtcdResult(six.with_metaclass(registry('action'))):
     """A successful etcd result.
 
     Don't use this class directly.  There're specific sub classes to be used

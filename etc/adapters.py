@@ -5,16 +5,11 @@
 """
 from __future__ import absolute_import
 
-from collections import OrderedDict
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+import functools
 import io
-import itertools
-from operator import getitem
-import os
 import socket
 import sys
-import threading
 
 import requests
 from requests.packages.urllib3.exceptions import ReadTimeoutError
@@ -26,10 +21,46 @@ from .errors import EtcdError, TimedOut
 from .results import Directory, EtcdResult, Node, Value
 
 
-__all__ = ['Adapter', 'EtcdAdapter']
+__all__ = ['Adapter', 'EtcdAdapter', 'MockAdapter']
 
 
-class Adapter(object):
+def with_verifier(verify, func):
+    @functools.wraps(func)
+    def wrapped(self, *args, **kwargs):
+        verify(*args, **kwargs)
+        return func(self, *args, **kwargs)
+    return wrapped
+
+
+class AdapterMeta(type):
+
+    def __new__(meta, name, bases, attrs):
+        for attr, verify in [('set', meta.verify_set),
+                             ('append', meta.verify_append)]:
+            try:
+                func = attrs[attr]
+            except KeyError:
+                continue
+            attrs[attr] = with_verifier(verify, func)
+        return super(AdapterMeta, meta).__new__(meta, name, bases, attrs)
+
+    @staticmethod
+    def verify_set(key, value=None, dir=False, ttl=None, prev_value=None,
+                   prev_index=None, prev_exist=None, timeout=None):
+        if (value is None) == (not dir):
+            raise ValueError('Set value or make as directory')
+        if value is not None and not isinstance(value, six.text_type):
+            raise TypeError('Set %s value' % six.text_type.__name__)
+
+    @staticmethod
+    def verify_append(key, value=None, dir=False, ttl=None, timeout=None):
+        if (value is None) == (not dir):
+            raise ValueError('Set value or make as directory')
+        if value is not None and not isinstance(value, six.text_type):
+            raise TypeError('Set %s value' % six.text_type.__name__)
+
+
+class Adapter(six.with_metaclass(AdapterMeta)):
     """An interface to implement several essential raw methods of etcd."""
 
     def get(self, key, recursive=False, sorted=False, quorum=False,
@@ -184,10 +215,6 @@ class EtcdAdapter(Adapter):
     def set(self, key, value=None, dir=False, ttl=None,
             prev_value=None, prev_index=None, prev_exist=None, timeout=None):
         """Requests to create an ordered node into a node by the given key."""
-        if (value is None) == (not dir):
-            raise ValueError('Set value or make as directory')
-        if value is not None and not isinstance(value, six.text_type):
-            raise TypeError('Set %s value' % six.text_type.__name__)
         url = self.make_key_url(key)
         data = self.build_args({
             'value': (six.text_type, value),
@@ -203,10 +230,6 @@ class EtcdAdapter(Adapter):
 
     def append(self, key, value=None, dir=False, ttl=None, timeout=None):
         """Requests to create an ordered node into a node by the given key."""
-        if (value is None) == (not dir):
-            raise ValueError('Set value or make as directory')
-        if value is not None and not isinstance(value, six.text_type):
-            raise TypeError('Set %s value' % six.text_type.__name__)
         url = self.make_key_url(key)
         data = self.build_args({
             'value': (six.text_type, value),
@@ -232,75 +255,4 @@ class EtcdAdapter(Adapter):
         return self.wrap_response(res)
 
 
-class MockAdapter(object):
-
-    def __init__(self, __):
-        self.storage = {}
-        self.events = {}
-        self.index = 0
-
-    def next_index(self):
-        self.index += 1
-        return self.index
-
-    def wake_waiters(self, key):
-        try:
-            event = self.events[key]
-        except KeyError:
-            pass
-        else:
-            event.set()
-            self.events.pop(key, None)
-
-    def split_key(self, key):
-        if key == '/':
-            return ()
-        key_chunks = os.path.split(key)
-        if key_chunks[0] == '/':
-            return key_chunks[1:]
-        else:
-            return key_chunks
-
-    def get(self, key, recursive=False, sorted=False, quorum=False,
-            wait=False, wait_index=None, timeout=None):
-        if wait:
-            event = self.events.setdefault(key, threading.Event())
-            event.wait()
-        key_chunks = self.split_key(key)
-        snapshots = reduce(getitem, key_chunks, self.storage)
-        index = snapshots.keys()[-1]
-        node = snapshots[index]
-        return node
-
-    def set(self, key, value=None, dir=False, ttl=None,
-            prev_value=None, prev_index=None, prev_exist=None, timeout=None):
-        key_chunks = self.split_key(key)
-        storage = reduce(getitem, key_chunks[:-1], self.storage)
-        node = storage.setdefault(key_chunks[-1], OrderedDict())
-        index = self.next_index()
-        if ttl is None:
-            expiration = None
-        else:
-            expiration = datetime.utcnow() + timedelta(ttl)
-        if dir:
-            node[index] = Directory(key, [], index, index, ttl, expiration)
-        else:
-            node[index] = Value(key, value, index, index, ttl, expiration)
-        self.wake_waiters(key)
-
-    def append(self, key, value=None, dir=False, ttl=None, timeout=None):
-        key_chunks = self.split_key(key)
-        storage = reduce(getitem, key_chunks, self.storage)
-        for x in itertools.count(len(storage)):
-            item_key = '%16d' % x
-            if item_key not in storage:
-                break
-        index = self.next_index()
-        storage[item_key] = (value, index, index)
-        self.wake_waiters(key)
-
-    def delete(self, key, dir=False, recursive=False,
-               prev_value=None, prev_index=None, timeout=None):
-        key_chunks = self.split_key(key)
-        storage = reduce(getitem, key_chunks[:-1], self.storage)
-        storage.pop(key_chunks[-1])
+from .mock import MockAdapter  # noqa
