@@ -12,6 +12,14 @@ import etc
 ETC_TEST_ETCD_URL = os.getenv('ETC_TEST_ETCD_URL', 'http://127.0.0.1:4001')
 
 
+def node_keys(nodes):
+    return [n.key for n in nodes]
+
+
+def node_values(nodes):
+    return [n.value for n in nodes]
+
+
 @pytest.fixture(params=[ETC_TEST_ETCD_URL, 'mock://etc'])
 def etcd(request):
     etcd = etc.etcd(request.param)
@@ -109,3 +117,19 @@ def test_append(etcd, spawn_later):
 def test_timeout(etcd):
     with pytest.raises(etc.TimedOut):
         etcd.wait('/etc', timeout=0.1)
+
+
+def test_history(etcd):
+    r1 = etcd.set('/etc', dir=True, ttl=10)
+    etcd.set('/etc/1', u'1')
+    r2 = etcd.update('/etc', dir=True, ttl=20)
+    etcd.set('/etc/2', u'2')
+    r3 = etcd.wait('/etc', r1.index)
+    assert r3.ttl == 10
+    assert not r3.nodes  # wait() doesn't receive nodes.
+    r4 = etcd.wait('/etc', r2.index)
+    assert r4.ttl == 20
+    assert not r4.nodes
+    r5 = etcd.get('/etc', sorted=True)
+    assert r5.ttl == 20
+    assert node_keys(r5.nodes) == ['/etc/1', '/etc/2']
