@@ -48,7 +48,9 @@ class MockNode(object):
     def add_node(self, node):
         if not node.key.startswith(self.key):
             raise ValueError('Out of this key')
-        sub_key = node.key[len(self.key):].strip('/')
+        sub_key = node.key[len(self.key):].rstrip('/')
+        if not sub_key.startswith('/'):
+            sub_key = '/' + sub_key
         if sub_key in self.nodes:
             raise ValueError('Already exists')
         self.nodes[sub_key] = node
@@ -62,7 +64,7 @@ class MockNode(object):
     def pop_node(self, sub_key):
         return self.nodes.pop(sub_key)
 
-    def canonicalize(self, index=None):
+    def canonicalize(self, index=None, sorted=False):
         modified_index = self.modified_index if index is None else index
         snapshot = self.history[modified_index]
         args = (modified_index, self.created_index,
@@ -75,6 +77,8 @@ class MockNode(object):
             if index is None:
                 value_or_nodes = [n.canonicalize() for n in
                                   six.viewvalues(self.nodes)]
+                if sorted:
+                    value_or_nodes.sort(key=lambda n: n.key)
             else:
                 value_or_nodes = []
         return node_class(self.key, value_or_nodes, *args)
@@ -115,21 +119,28 @@ class MockAdapter(Adapter):
             return ()
         key_chunks = os.path.split(key)
         if key_chunks[0] == '/':
+            key_chunks = list(key_chunks)
+            key_chunks[1] = '/' + key_chunks[1]
             return key_chunks[1:]
         else:
             return key_chunks
 
     def get(self, key, recursive=False, sorted=False, quorum=False,
             wait=False, wait_index=None, timeout=None):
-        if wait:
-            event = self.events.setdefault(key, threading.Event())
-            event.wait()
         key_chunks = self.split_key(key)
-        try:
-            node = reduce(MockNode.get_node, key_chunks, self.root)
-        except KeyError:
-            raise KeyNotFound(index=self.index)
-        c_node = node.canonicalize()
+        if wait:
+            while True:
+                node = reduce(MockNode.get_node, key_chunks, self.root)
+                if wait_index <= node.modified_index:
+                    break
+                event = self.events.setdefault(key, threading.Event())
+                event.wait()
+        else:
+            try:
+                node = reduce(MockNode.get_node, key_chunks, self.root)
+            except KeyError:
+                raise KeyNotFound(index=self.index)
+        c_node = node.canonicalize(wait_index, sorted=sorted)
         return Got(c_node, None, self.index)
 
     def set(self, key, value=None, dir=False, ttl=None,
@@ -141,6 +152,8 @@ class MockAdapter(Adapter):
         try:
             node = parent_node.get_node(key_chunks[-1])
         except KeyError:
+            if prev_exist:
+                raise KeyNotFound(index=self.index)
             node = MockNode(key, index, value, dir, ttl, expiration)
             parent_node.add_node(node)
         else:
