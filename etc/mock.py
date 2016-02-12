@@ -12,6 +12,7 @@ import os
 import threading
 
 import six
+from six.moves import reduce
 
 from .adapters import Adapter
 from .errors import KeyNotFound
