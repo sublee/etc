@@ -5,7 +5,10 @@
 """
 from __future__ import absolute_import
 
-from collections import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 from datetime import datetime, timedelta
 import itertools
 import os
