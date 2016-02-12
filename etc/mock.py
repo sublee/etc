@@ -15,19 +15,14 @@ import os
 import threading
 
 import six
-from six.moves import reduce
+from six.moves import reduce, xrange
 
 from .adapters import Adapter
 from .errors import KeyNotFound, TimedOut
-from .results import Created, Deleted, Directory, Got, Set, Value
+from .results import Created, Deleted, Directory, Got, Set, Updated, Value
 
 
-# key:
-# history:
-#     index: node
-#     index2: node2
-#     ...
-# nodes:
+__all__ = ['MockAdapter']
 
 
 class Waiter(object):
@@ -87,6 +82,8 @@ class MockNode(object):
         return self.nodes.pop(sub_key)
 
     def canonicalize(self, index=None, sorted=False):
+        """Generates a canonical :class:`etc.Node` object from this mock node.
+        """
         modified_index = self.modified_index if index is None else index
         snapshot = self.history[modified_index]
         args = (modified_index, self.created_index,
@@ -96,13 +93,13 @@ class MockNode(object):
             value_or_nodes = snapshot.value
         else:
             node_class = Directory
+            value_or_nodes = []
             if index is None:
-                value_or_nodes = [n.canonicalize() for n in
-                                  six.viewvalues(self.nodes)]
+                # Include child nodes.
+                value_or_nodes.extend(n.canonicalize() for n in
+                                      six.viewvalues(self.nodes))
                 if sorted:
                     value_or_nodes.sort(key=lambda n: n.key)
-            else:
-                value_or_nodes = []
         return node_class(self.key, value_or_nodes, *args)
 
 
@@ -128,9 +125,9 @@ class MockAdapter(Adapter):
         return self.index
 
     def wake_waiters(self, key, result):
-        waiter_keys = [key]
         key_chunks = self.split_key(key)
-        waiter_keys.extend(key_chunks[:x] for x in range(1, len(key_chunks)))
+        waiter_keys = [key]
+        waiter_keys.extend(key_chunks[:x + 1] for x in xrange(len(key_chunks)))
         for waiter_key in waiter_keys:
             try:
                 waiter = self.waiters.pop(waiter_key)
@@ -194,9 +191,11 @@ class MockAdapter(Adapter):
                 raise KeyNotFound(index=self.index)
             node = MockNode(key, index, value, dir, ttl, expiration)
             parent_node.add_node(node)
+            result_class = Set
         else:
             node.set(index, value, ttl, expiration)
-        return self.make_result(Set, node, wake=key)
+            result_class = Updated
+        return self.make_result(result_class, node, wake=key)
 
     def append(self, key, value=None, dir=False, ttl=None, timeout=None):
         expiration = ttl and (datetime.utcnow() + timedelta(ttl))

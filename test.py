@@ -85,15 +85,37 @@ def test_wait(etcd, spawn_later):
     etcd.set('/etc', u('one'))
     spawn_later(0.1, etcd.set, '/etc', u('two'))
     r = etcd.get('/etc')
+    assert isinstance(r, etc.Got)
     assert r.value == u('one')
     r = etcd.wait('/etc', r.index + 1)
+    assert isinstance(r, etc.Set)
     assert r.value == u('two')
     spawn_later(0.1, etcd.set, '/etc', u('three'))
     spawn_later(0.2, etcd.set, '/etc', u('four'))
     r = etcd.wait('/etc', r.index + 1)
+    assert isinstance(r, etc.Set)
     assert r.value == u('three')
     r = etcd.wait('/etc', r.index + 1)
+    assert isinstance(r, etc.Set)
     assert r.value == u('four')
+
+
+def test_recursive_wait(etcd, spawn_later):
+    r = etcd.set('/etc', dir=True)
+    assert isinstance(r, etc.Set)
+    assert isinstance(r.node, etc.Directory)
+    spawn_later(0.1, etcd.set, '/etc/1', u('one'))
+    spawn_later(0.2, etcd.set, '/etc/2', u('two'))
+    spawn_later(0.3, etcd.update, '/etc', dir=True, ttl=10)
+    r = etcd.wait('/etc', r.index + 1, recursive=True)
+    assert isinstance(r, etc.Set)
+    assert r.key == '/etc/1'
+    r = etcd.wait('/etc', r.index + 1, recursive=True)
+    assert isinstance(r, etc.Set)
+    assert r.key == '/etc/2'
+    r = etcd.wait('/etc', r.index + 1, recursive=True)
+    assert isinstance(r, etc.Updated)
+    assert r.key == '/etc'
 
 
 def test_append(etcd, spawn_later):
