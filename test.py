@@ -70,13 +70,13 @@ def test_set_only_unicode(etcd):
 
 def test_get_set_delete(etcd):
     r1 = etcd.set('/etc', u('Hello, world'))
-    assert isinstance(r1, etc.Set)
+    assert r1.__class__ is etc.Set
     r2 = etcd.get('/etc')
-    assert isinstance(r2, etc.Got)
+    assert r2.__class__ is etc.Got
     assert r2.value == u('Hello, world')
     assert r1.etcd_index == r2.modified_index
     r3 = etcd.delete('/etc')
-    assert isinstance(r3, etc.Deleted)
+    assert r3.__class__ is etc.Deleted
     with pytest.raises(etc.KeyNotFound):
         etcd.get('/etc')
 
@@ -85,40 +85,40 @@ def test_wait(etcd, spawn_later):
     etcd.set('/etc', u('one'))
     spawn_later(0.1, etcd.set, '/etc', u('two'))
     r = etcd.get('/etc')
-    assert isinstance(r, etc.Got)
+    assert r.__class__ is etc.Got
     assert r.value == u('one')
     r = etcd.wait('/etc', r.index + 1)
-    assert isinstance(r, etc.Set)
+    assert r.__class__ is etc.Set
     assert r.value == u('two')
     spawn_later(0.1, etcd.set, '/etc', u('three'))
     spawn_later(0.2, etcd.set, '/etc', u('four'))
     r = etcd.wait('/etc', r.index + 1)
-    assert isinstance(r, etc.Set)
+    assert r.__class__ is etc.Set
     assert r.value == u('three')
     r = etcd.wait('/etc', r.index + 1)
-    assert isinstance(r, etc.Set)
+    assert r.__class__ is etc.Set
     assert r.value == u('four')
 
 
 def test_recursive_wait(etcd, spawn_later):
     r = etcd.set('/etc', dir=True)
-    assert isinstance(r, etc.Set)
+    assert r.__class__ is etc.Set
     assert isinstance(r.node, etc.Directory)
     spawn_later(0.1, etcd.set, '/etc/1', u('one'))
     spawn_later(0.2, etcd.set, '/etc/2', u('two'))
     spawn_later(0.3, etcd.update, '/etc', dir=True, ttl=10)
     r = etcd.wait('/etc', r.index + 1, recursive=True)
-    assert isinstance(r, etc.Set)
+    assert r.__class__ is etc.Set
     assert r.key == '/etc/1'
     r = etcd.wait('/etc', r.index + 1, recursive=True)
-    assert isinstance(r, etc.Set)
+    assert r.__class__ is etc.Set
     assert r.key == '/etc/2'
     r = etcd.wait('/etc', r.index + 1, recursive=True)
-    assert isinstance(r, etc.Updated)
+    assert r.__class__ is etc.Updated
     assert r.key == '/etc'
     r = etcd.set('/etc/3', u'three')
     r = etcd.wait('/etc', r.index, recursive=True)
-    assert isinstance(r, etc.Set)
+    assert r.__class__ is etc.Set
     assert r.key == '/etc/3'
 
 
@@ -168,17 +168,45 @@ def test_recursive_wait_with_old_history(etcd):
     etcd.update('/etc', dir=True, ttl=10)
     # Wait not recursively.
     r1 = etcd.wait('/etc', r.index + 1)
-    assert isinstance(r1, etc.Updated)
+    assert r1.__class__ is etc.Updated
     assert r1.key == '/etc'
     assert r1.ttl == 10
     # Wait recursively.
     r2 = etcd.wait('/etc', r.index + 1, recursive=True)
-    assert isinstance(r2, etc.Set)
+    assert r2.__class__ is etc.Set
     assert r2.key == '/etc/xxx'
     assert r2.value == u'1'
     r3 = etcd.wait('/etc', r2.index + 1, recursive=True)
-    assert isinstance(r3, etc.Set)
+    assert r3.__class__ is etc.Set
     assert r3.key == '/etc/xxx'
     assert r3.value == u'2'
     r4 = etcd.wait('/etc', r3.index + 1, recursive=True)
     assert r1 == r4
+
+
+def test_compare(etcd):
+    # prev_exist
+    etcd.create('/etc', u'1')
+    with pytest.raises(etc.NodeExist):
+        etcd.create('/etc', u'2')
+    etcd.set('/etc', u'3')
+    etcd.update('/etc', u'4')
+    with pytest.raises(etc.KeyNotFound):
+        etcd.update('/xxx', u'---')
+    # prev_value
+    etcd.update('/etc', u'5', prev_value=u'4')
+    with pytest.raises(etc.TestFailed):
+        etcd.update('/etc', u'6', prev_value=u'4')
+    # prev_index
+    r = etcd.get('/etc')
+    with pytest.raises(etc.TestFailed):
+        etcd.update('/etc', u'7', prev_index=r.index * 2)
+    etcd.update('/etc', u'8', prev_index=r.index)
+    # delete
+    with pytest.raises(etc.TestFailed):
+        etcd.delete('/etc', prev_value=u'000')
+    etcd.delete('/etc', prev_value=u'8')
+    with pytest.raises(etc.KeyNotFound):
+        etcd.delete('/etc', prev_value=u'8')
+    with pytest.raises(etc.KeyNotFound):
+        etcd.delete('/etc')

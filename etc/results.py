@@ -37,10 +37,12 @@ class Node(object):
 
     @property
     def index(self):
+        """Alias for `modified_index`."""
         return self.modified_index
 
     @property
     def expires_at(self):
+        """Alias for `expiration`."""
         return self.expiration
 
     __eq__ = __eq__

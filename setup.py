@@ -7,7 +7,6 @@ An etcd client library for humans.
 
 """
 import os
-import sys
 
 from setuptools import setup
 from setuptools.command.test import test
@@ -24,12 +23,6 @@ with open(os.path.join(__dir__, 'etc', '__about__.py')) as f:
 def run_tests(self):
     raise SystemExit(__import__('pytest').main(['-v']))
 test.run_tests = run_tests
-
-
-# Requirements.
-requirements = ['requests']
-if sys.version_info < (2, 7):
-    requirements.append('ordereddict')
 
 
 setup(
@@ -58,7 +51,7 @@ setup(
                  'Programming Language :: Python :: Implementation :: CPython',
                  'Programming Language :: Python :: Implementation :: PyPy',
                  'Topic :: Software Development'],
-    install_requires=requirements,
+    install_requires=['requests'],
     tests_require=['pytest'],
     test_suite='...',
 )
