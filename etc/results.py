@@ -15,6 +15,14 @@ __all__ = ['ComparedThenDeleted', 'ComparedThenSwapped', 'Created', 'Deleted',
            'Updated', 'Value']
 
 
+def __eq__(self, other):
+    """Common `__eq__` implementation for classes which has `__slots__`."""
+    if self.__class__ is not other.__class__:
+        return False
+    return all(getattr(self, attr) == getattr(other, attr)
+               for attr in self.__slots__)
+
+
 class Node(object):
 
     __slots__ = ('key', 'modified_index', 'created_index', 'ttl', 'expiration')
@@ -34,6 +42,8 @@ class Node(object):
     @property
     def expires_at(self):
         return self.expiration
+
+    __eq__ = __eq__
 
 
 class Value(Node):
@@ -114,6 +124,8 @@ class EtcdResult(six.with_metaclass(registry('action'))):
             ('raft_index', self.raft_index),
             ('raft_term', self.raft_term),
         ])
+
+    __eq__ = __eq__
 
 
 def def_(name, action=NotImplemented, base=EtcdResult):
