@@ -181,7 +181,7 @@ def test_recursive_wait_with_old_history(etcd):
     assert r3.key == '/etc/xxx'
     assert r3.value == u'2'
     r4 = etcd.wait('/etc', r3.index + 1, recursive=True)
-    assert r1 == r4
+    assert r1.node == r4.node
 
 
 def test_compare(etcd):
