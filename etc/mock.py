@@ -19,7 +19,8 @@ from six.moves import reduce, xrange
 
 from .adapters import Adapter
 from .errors import KeyNotFound, TimedOut
-from .results import Created, Deleted, Directory, Got, Set, Updated, Value
+from .results import (
+    Created, Deleted, Directory, EtcdResult, Got, Set, Updated, Value)
 
 
 __all__ = ['MockAdapter']
@@ -47,19 +48,19 @@ class MockNode(object):
 
     __slots__ = ('key', 'history', 'nodes', 'created_index', 'modified_index')
 
-    def __init__(self, key, index, value=None, dir=False,
+    def __init__(self, key, index, result_class, value=None, dir=False,
                  ttl=None, expiration=None):
         if bool(dir) is (value is not None):
             raise TypeError('Choose one of value or directory')
         self.key = key
         self.history = OrderedDict()
         self.created_index = index
-        self.set(index, value, ttl, expiration)
+        self.set(index, result_class, value, ttl, expiration)
         self.nodes = {} if dir else None
 
-    def set(self, index, value=None, ttl=None, expiration=None):
+    def set(self, index, result_class, value=None, ttl=None, expiration=None):
         snapshot = MockNodeSnapshot(value, ttl, expiration)
-        self.history[index] = snapshot
+        self.history[index] = (result_class, snapshot)
         self.modified_index = index
 
     def add_node(self, node):
@@ -85,7 +86,7 @@ class MockNode(object):
         """Generates a canonical :class:`etc.Node` object from this mock node.
         """
         modified_index = self.modified_index if index is None else index
-        snapshot = self.history[modified_index]
+        result_class, snapshot = self.history[modified_index]
         args = (modified_index, self.created_index,
                 snapshot.ttl, snapshot.expiration)
         if self.nodes is None:
@@ -96,11 +97,11 @@ class MockNode(object):
             value_or_nodes = []
             if index is None:
                 # Include child nodes.
-                value_or_nodes.extend(n.canonicalize() for n in
+                value_or_nodes.extend(n.canonicalize()[1] for n in
                                       six.viewvalues(self.nodes))
                 if sorted:
                     value_or_nodes.sort(key=lambda n: n.key)
-        return node_class(self.key, value_or_nodes, *args)
+        return result_class, node_class(self.key, value_or_nodes, *args)
 
 
 class MockNodeSnapshot(object):
@@ -117,7 +118,7 @@ class MockAdapter(Adapter):
 
     def __init__(self, __):
         self.index = 0
-        self.root = MockNode('/', self.index, dir=True)
+        self.root = MockNode('', self.index, Got, dir=True)
         self.waiters = {}
 
     def next_index(self):
@@ -136,12 +137,18 @@ class MockAdapter(Adapter):
             else:
                 waiter.set(result)
 
-    def make_result(self, result_class, node, *args, **kwargs):
+    def make_result(self, node, *args, **kwargs):
         try:
             wake_key = kwargs.pop('wake')
         except KeyError:
             wake_key = None
-        c_node = node.canonicalize(*args, **kwargs)
+        if isinstance(node, type) and issubclass(node, EtcdResult):
+            result_class = node
+            node, args = args[0], args[1:]
+        else:
+            result_class = None
+        result_class_, c_node = node.canonicalize(*args, **kwargs)
+        result_class = result_class or result_class_
         result = result_class(c_node, None, self.index)
         if wake_key:
             self.wake_waiters(wake_key, result)
@@ -189,13 +196,11 @@ class MockAdapter(Adapter):
         except KeyError:
             if prev_exist:
                 raise KeyNotFound(index=self.index)
-            node = MockNode(key, index, value, dir, ttl, expiration)
+            node = MockNode(key, index, Set, value, dir, ttl, expiration)
             parent_node.add_node(node)
-            result_class = Set
         else:
-            node.set(index, value, ttl, expiration)
-            result_class = Updated
-        return self.make_result(result_class, node, wake=key)
+            node.set(index, Updated, value, ttl, expiration)
+        return self.make_result(node, wake=key)
 
     def append(self, key, value=None, dir=False, ttl=None, timeout=None):
         expiration = ttl and (datetime.utcnow() + timedelta(ttl))
@@ -207,13 +212,15 @@ class MockAdapter(Adapter):
                 break
         key = os.path.join(key, item_key)
         index = self.next_index()
-        node = MockNode(key, index, value, dir, ttl, expiration)
+        node = MockNode(key, index, Created, value, dir, ttl, expiration)
         parent_node.add_node(node)
-        return self.make_result(Created, node, wake=key)
+        return self.make_result(node, wake=key)
 
     def delete(self, key, dir=False, recursive=False,
                prev_value=None, prev_index=None, timeout=None):
         key_chunks = self.split_key(key)
         parent_node = reduce(MockNode.get_node, key_chunks[:-1], self.root)
         node = parent_node.pop_node(key_chunks[-1])
-        return self.make_result(Deleted, node)
+        index = self.next_index()
+        node.set(index, Deleted, node.value, node.ttl, node.expiration)
+        return self.make_result(node)
