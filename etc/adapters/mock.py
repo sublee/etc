@@ -5,17 +5,19 @@
 """
 from __future__ import absolute_import
 
+import bisect
 from datetime import datetime, timedelta
 import itertools
 import os
 import threading
+import warnings
 
 import six
 from six.moves import reduce, xrange
 
-from .adapters import Adapter
-from .errors import KeyNotFound, NodeExist, TestFailed, TimedOut
-from .results import (
+from ..adapter import Adapter
+from ..errors import KeyNotFound, NodeExist, TestFailed, TimedOut
+from ..results import (
     Created, Deleted, Directory, Got, Node, Set, Updated, Value)
 
 
@@ -113,12 +115,17 @@ class MockNode(Node):
 
 class MockAdapter(Adapter):
 
-    def __init__(self, __):
+    def __init__(self):
         self.index = 0
         self.root = MockNode('', self.index, dir=True)
         self.history = {}
         self.indices = {}
         self.waiters = {}
+
+    @property
+    def url(self):
+        warnings.warn('Mock adapter does not have URL')
+        return ''
 
     def next_index(self):
         """Gets the next etcd index."""
@@ -143,7 +150,7 @@ class MockAdapter(Adapter):
             waiter_keys = [(False, key_chunks)]
             for _key_chunks in asymptotic_key_chunks:
                 exact = _key_chunks == key_chunks
-                self.indices.setdefault(_key_chunks, []).append((exact, index))
+                self.indices.setdefault(_key_chunks, []).append((index, exact))
                 waiter_keys.append((True, _key_chunks))
             for waiter_key in waiter_keys:
                 try:
@@ -162,26 +169,24 @@ class MockAdapter(Adapter):
     def get(self, key, recursive=False, sorted=False, quorum=False,
             wait=False, wait_index=None, timeout=None):
         key_chunks = split_key(key)
-        if wait:
-            result = None
-            for exact, index in reversed(self.indices.get(key_chunks, ())):
-                if not recursive and not exact:
-                    continue
-                if index >= wait_index:
-                    result = self.history[index]
-                else:
-                    break
-            if result is None:
-                waiter_key = (recursive, key_chunks)
-                waiter = self.waiters.setdefault(waiter_key, Waiter())
-                result = waiter.get(timeout)
-            return result
-        else:
+        if not wait:
             try:
                 node = reduce(MockNode.get_node, key_chunks, self.root)
             except KeyError:
                 raise KeyNotFound(index=self.index)
-        return self.make_result(Got, node, remember=False, sorted=sorted)
+            return self.make_result(Got, node, remember=False, sorted=sorted)
+        # Wait...
+        if wait_index is not None:
+            indices = self.indices.get(key_chunks, ())
+            x = bisect.bisect_left(indices, (wait_index, None))
+            for index, exact in indices[x:]:
+                if recursive or exact:
+                    # Matched past result found.
+                    return self.history[index]
+        # Register a waiter and wait...
+        waiter_key = (recursive, key_chunks)
+        waiter = self.waiters.setdefault(waiter_key, Waiter())
+        return waiter.get(timeout)
 
     def set(self, key, value=None, dir=False, ttl=None,
             prev_value=None, prev_index=None, prev_exist=None, timeout=None):

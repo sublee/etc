@@ -53,5 +53,13 @@ __all__ = [
 ]
 
 
-#: An alias for :class:`Client`.
-etcd = Client
+DEFAULT_URL = 'http://127.0.0.1:4001'
+
+
+def etcd(url=DEFAULT_URL, mock=False):
+    if mock:
+        from .adapters.mock import MockAdapter
+        return Client(MockAdapter())
+    else:
+        from .adapters.etcd import EtcdAdapter
+        return Client(EtcdAdapter(url))

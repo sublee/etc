@@ -20,9 +20,15 @@ def node_values(nodes):
     return [n.value for n in nodes]
 
 
-@pytest.fixture(params=[ETC_TEST_ETCD_URL, 'mock://etc'])
+@pytest.fixture(params=['etcd', 'mock'])
 def etcd(request):
-    etcd = etc.etcd(request.param)
+    mode = request.param
+    if mode == 'etcd':
+        etcd = etc.etcd(ETC_TEST_ETCD_URL)
+    elif mode == 'mock':
+        etcd = etc.etcd(mock=True)
+    else:
+        raise AssertionError
     result = etcd.get('/', recursive=True)
     for node in result.nodes:
         dir_ = isinstance(node, etc.Directory)

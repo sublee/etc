@@ -5,29 +5,16 @@
 """
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import urlparse
-
-from .adapters import EtcdAdapter, MockAdapter
 from .helpers import gen_repr
 
 
 __all__ = ['Client']
 
 
-ADAPTER_CLASSES = {
-    'http': EtcdAdapter,
-    'https': EtcdAdapter,
-    'mock': MockAdapter,
-}
-DEFAULT_URL = 'http://127.0.0.1:4001'
-
-
 class Client(object):
 
-    def __init__(self, url=DEFAULT_URL, *args, **kwargs):
-        url_info = urlparse(url)
-        adapter_class = ADAPTER_CLASSES[url_info.scheme]
-        self._adapter = adapter_class(url, *args, **kwargs)
+    def __init__(self, adapter):
+        self._adapter = adapter
 
     @property
     def url(self):
