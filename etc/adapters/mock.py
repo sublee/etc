@@ -28,6 +28,7 @@ KEY_SEP = '/'
 
 
 def split_key(key):
+    """Splits a node key."""
     if key == KEY_SEP:
         return ()
     key_chunks = tuple(key.strip(KEY_SEP).split(KEY_SEP))
@@ -35,24 +36,6 @@ def split_key(key):
         return (key_chunks[0][len(KEY_SEP):],) + key_chunks[1:]
     else:
         return key_chunks
-
-
-class Waiter(object):
-
-    def __init__(self):
-        self.event = threading.Event()
-
-    def set(self, value):
-        self.value = value
-        self.event.set()
-
-    def get(self, timeout=None):
-        if not self.event.wait(timeout):
-            raise TimedOut
-        return self.value
-
-    def is_set(self):
-        return self.event.is_set()
 
 
 class MockNode(Node):
@@ -67,6 +50,7 @@ class MockNode(Node):
         self.set(index, value, dir, ttl, expiration)
 
     def set(self, index, value=None, dir=False, ttl=None, expiration=None):
+        """Updates the node data."""
         if bool(dir) is (value is not None):
             raise TypeError('Choose one of value or directory')
         if (ttl is not None) is (expiration is None):
@@ -85,6 +69,8 @@ class MockNode(Node):
         sub_key = node.key[len(self.key):].strip(KEY_SEP)
         if sub_key in self.nodes:
             raise ValueError('Already exists')
+        if KEY_SEP in sub_key:
+            raise ValueError('Too deep key')
         self.nodes[sub_key] = node
 
     def has_node(self, sub_key):
@@ -120,7 +106,7 @@ class MockAdapter(Adapter):
         self.root = MockNode('', self.index, dir=True)
         self.history = {}
         self.indices = {}
-        self.waiters = {}
+        self.events = {}
 
     @property
     def url(self):
@@ -133,35 +119,47 @@ class MockAdapter(Adapter):
         return self.index
 
     def make_result(self, result_class, node=None, prev_node=None,
-                    key_chunks=None, remember=True, **kwargs):
+                    remember=True, key_chunks=None, **kwargs):
+        """Makes an etcd result.
+
+        If `remember` is ``True``, it keeps the result in the history and
+        triggers events if waiting.  `key_chunks` is the result of
+        :func:`split_key` of the `node.key`.  It is not required if `remember`
+        is ``False``.  Otherwise, it is optional but recommended to eliminate
+        waste if the key chunks are already supplied.
+
+        """
         def canonicalize(node, **kwargs):
             return None if node is None else node.canonicalize(**kwargs)
         index = self.index
         result = result_class(canonicalize(node, **kwargs),
                               canonicalize(prev_node, **kwargs), index)
-        if remember:
-            result_without_nodes = result_class(
-                canonicalize(node, include_nodes=False),
-                canonicalize(prev_node, include_nodes=False), index)
-            self.history[index] = result_without_nodes
-            key_chunks = key_chunks or split_key(node.key)
-            asymptotic_key_chunks = (key_chunks[:x + 1]
-                                     for x in xrange(len(key_chunks)))
-            waiter_keys = [(False, key_chunks)]
-            for _key_chunks in asymptotic_key_chunks:
-                exact = _key_chunks == key_chunks
-                self.indices.setdefault(_key_chunks, []).append((index, exact))
-                waiter_keys.append((True, _key_chunks))
-            for waiter_key in waiter_keys:
-                try:
-                    waiter = self.waiters.pop(waiter_key)
-                except KeyError:
-                    pass
-                else:
-                    waiter.set(result_without_nodes)
+        if not remember:
+            return result
+        self.history[index] = result_class(
+            canonicalize(node, include_nodes=False),
+            canonicalize(prev_node, include_nodes=False), index)
+        key_chunks = key_chunks or split_key(node.key)
+        asymptotic_key_chunks = (key_chunks[:x + 1]
+                                 for x in xrange(len(key_chunks)))
+        event_keys = [(False, key_chunks)]
+        for _key_chunks in asymptotic_key_chunks:
+            exact = _key_chunks == key_chunks
+            self.indices.setdefault(_key_chunks, []).append((index, exact))
+            event_keys.append((True, _key_chunks))
+        for event_key in event_keys:
+            try:
+                event = self.events.pop(event_key)
+            except KeyError:
+                pass
+            else:
+                event.set()
         return result
 
     def compare(self, node, prev_value=None, prev_index=None):
+        """Raises :exc:`TestFailed` if the node is not matched with
+        `prev_value` or `prev_index`.
+        """
         if prev_value is not None and node.value != prev_value or \
            prev_index is not None and node.index != prev_index:
             raise TestFailed(index=self.index)
@@ -170,6 +168,7 @@ class MockAdapter(Adapter):
             wait=False, wait_index=None, timeout=None):
         key_chunks = split_key(key)
         if not wait:
+            # Get immediately.
             try:
                 node = reduce(MockNode.get_node, key_chunks, self.root)
             except KeyError:
@@ -183,10 +182,13 @@ class MockAdapter(Adapter):
                 if recursive or exact:
                     # Matched past result found.
                     return self.history[index]
-        # Register a waiter and wait...
-        waiter_key = (recursive, key_chunks)
-        waiter = self.waiters.setdefault(waiter_key, Waiter())
-        return waiter.get(timeout)
+        # Register an event and wait...
+        event_key = (recursive, key_chunks)
+        event = self.events.setdefault(event_key, threading.Event())
+        if not event.wait(timeout):
+            raise TimedOut
+        index, __ = self.indices[key_chunks][-1]
+        return self.history[index]
 
     def set(self, key, value=None, dir=False, ttl=None,
             prev_value=None, prev_index=None, prev_exist=None, timeout=None):
