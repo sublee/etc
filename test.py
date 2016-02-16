@@ -116,6 +116,10 @@ def test_recursive_wait(etcd, spawn_later):
     r = etcd.wait('/etc', r.index + 1, recursive=True)
     assert isinstance(r, etc.Updated)
     assert r.key == '/etc'
+    r = etcd.set('/etc/3', u'three')
+    r = etcd.wait('/etc', r.index, recursive=True)
+    assert isinstance(r, etc.Set)
+    assert r.key == '/etc/3'
 
 
 def test_append(etcd, spawn_later):
@@ -155,3 +159,26 @@ def test_history(etcd):
     r5 = etcd.get('/etc', sorted=True)
     assert r5.ttl == 20
     assert node_keys(r5.nodes) == ['/etc/1', '/etc/2']
+
+
+def test_recursive_wait_with_old_history(etcd):
+    r = etcd.set('/etc', dir=True)
+    etcd.set('/etc/xxx', u'1')
+    etcd.set('/etc/xxx', u'2')
+    etcd.update('/etc', dir=True, ttl=10)
+    # Wait not recursively.
+    r1 = etcd.wait('/etc', r.index + 1)
+    assert isinstance(r1, etc.Updated)
+    assert r1.key == '/etc'
+    assert r1.ttl == 10
+    # Wait recursively.
+    r2 = etcd.wait('/etc', r.index + 1, recursive=True)
+    assert isinstance(r2, etc.Set)
+    assert r2.key == '/etc/xxx'
+    assert r2.value == u'1'
+    r3 = etcd.wait('/etc', r2.index + 1, recursive=True)
+    assert isinstance(r3, etc.Set)
+    assert r3.key == '/etc/xxx'
+    assert r3.value == u'2'
+    r4 = etcd.wait('/etc', r3.index + 1, recursive=True)
+    assert r1 == r4
