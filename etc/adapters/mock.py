@@ -177,7 +177,7 @@ class MockAdapter(Adapter):
         # Wait...
         if wait_index is not None:
             indices = self.indices.get(key_chunks, ())
-            x = bisect.bisect_left(indices, (wait_index, None))
+            x = bisect.bisect_left(indices, (wait_index, False))
             for index, exact in indices[x:]:
                 if recursive or exact:
                     # Matched past result found.
