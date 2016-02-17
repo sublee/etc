@@ -56,10 +56,12 @@ __all__ = [
 DEFAULT_URL = 'http://127.0.0.1:4001'
 
 
-def etcd(url=DEFAULT_URL, mock=False):
+def etcd(url=DEFAULT_URL, mock=False, **kwargs):
+    """Creates an etcd client."""
     if mock:
         from .adapters.mock import MockAdapter
-        return Client(MockAdapter())
+        adapter_class = MockAdapter
     else:
         from .adapters.etcd import EtcdAdapter
-        return Client(EtcdAdapter(url))
+        adapter_class = EtcdAdapter
+    return Client(adapter_class(url, **kwargs))

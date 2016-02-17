@@ -56,7 +56,8 @@ class AdapterMeta(type):
 class Adapter(six.with_metaclass(AdapterMeta)):
     """An interface to implement several essential raw methods of etcd."""
 
-    url = NotImplemented
+    def __init__(self, url):
+        self.url = url
 
     def get(self, key, recursive=False, sorted=False, quorum=False,
             wait=False, wait_index=None, timeout=None):

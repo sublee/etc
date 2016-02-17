@@ -27,8 +27,8 @@ __all__ = ['EtcdAdapter']
 class EtcdAdapter(Adapter):
     """An adapter which communicates with an etcd v2 server."""
 
-    def __init__(self, url=u'http://127.0.0.1:4001', default_timeout=60):
-        self.url = url
+    def __init__(self, url, default_timeout=60):
+        super(EtcdAdapter, self).__init__(url)
         self.default_timeout = default_timeout
         self._session = requests.Session()
 

@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 import itertools
 import os
 import threading
-import warnings
 
 import six
 from six.moves import reduce, xrange
@@ -101,17 +100,13 @@ class MockNode(Node):
 
 class MockAdapter(Adapter):
 
-    def __init__(self):
+    def __init__(self, url):
+        super(MockAdapter, self).__init__(url)
         self.index = 0
         self.root = MockNode('', self.index, dir=True)
         self.history = {}
         self.indices = {}
         self.events = {}
-
-    @property
-    def url(self):
-        warnings.warn('Mock adapter does not have URL')
-        return ''
 
     def next_index(self):
         """Gets the next etcd index."""
