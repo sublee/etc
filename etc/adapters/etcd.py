@@ -141,8 +141,8 @@ class EtcdAdapter(Adapter):
             'wait': (bool, wait or None),
             'waitIndex': (int, wait_index),
         })
-        if wait and timeout is None:
-            # Wait forever although :exc:`TimedOut` thrown.
+        if timeout is None:
+            # Try again when :exc:`TimedOut` thrown.
             while True:
                 try:
                     with self.session() as s:
@@ -152,7 +152,6 @@ class EtcdAdapter(Adapter):
                 else:
                     break
         else:
-            # Raise :exc:`TimedOut` if thrown.
             with self.session() as s:
                 res = s.get(url, params=params, timeout=timeout)
         return self.wrap_response(res)
