@@ -12,6 +12,9 @@ __all__ = ['Client']
 
 
 class Client(object):
+    """An etcd client.  It wraps an :class:`etc.adapter.Adapter` and exposes
+    humane public methods.
+    """
 
     def __init__(self, adapter):
         self._adapter = adapter

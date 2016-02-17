@@ -90,9 +90,12 @@ class Directory(Node):
 class EtcdResult(six.with_metaclass(registry('action'))):
     """A successful etcd result.
 
-    Don't use this class directly.  There're specific sub classes to be used
+    Don't use this class directly.  There're specific subclasses to be used
     instead.
 
+    :subclasses: :class:`Got`, :class:`Set`, :class:`Deleted`,
+                 :class:`Created`, :class:`Updated`, :class:`Expired`,
+                 :class:`ComparedThenSwapped`, :class:`ComparedThenDeleted`.
     """
 
     __slots__ = ('node', 'prev_node', 'etcd_index', 'raft_index', 'raft_term')

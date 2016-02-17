@@ -30,7 +30,23 @@ class EtcException(Exception):
 
 
 class EtcdError(six.with_metaclass(registry('errno'), EtcException)):
-    """A failed etcd result."""
+    """A failed etcd result.
+
+    :subclasses: :class:`KeyNotFound`, :class:`TestFailed`, :class:`NotFile`,
+                 :class:`NoMorePeer`, :class:`NotDir`, :class:`NodeExist`,
+                 :class:`KeyIsPreserved`, :class:`RootROnly`,
+                 :class:`DirNotEmpty`, :class:`ExistingPeerAddr`,
+                 :class:`Unauthorized`, :class:`ValueRequired`,
+                 :class:`PrevValueRequired`, :class:`TTLNaN`,
+                 :class:`IndexNaN`, :class:`ValueOrTTLRequired`,
+                 :class:`TimeoutNaN`, :class:`NameRequired`,
+                 :class:`IndexOrValueRequired`, :class:`IndexValueMutex`,
+                 :class:`InvalidField`, :class:`InvalidForm`,
+                 :class:`RaftInternal`, :class:`LeaderElect`,
+                 :class:`WatcherCleared`, :class:`EventIndexCleared`,
+                 :class:`StandbyInternal`, :class:`InvalidActiveSize`,
+                 :class:`InvalidRemoveDelay`.
+    """
 
     __slots__ = ('message', 'cause', 'index')
 

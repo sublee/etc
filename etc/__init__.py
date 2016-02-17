@@ -29,7 +29,6 @@ from .errors import (
 from .results import (
     ComparedThenDeleted, ComparedThenSwapped, Created, Deleted, Directory,
     EtcdResult, Expired, Got, Node, Set, Updated, Value)
-# from .errors import
 
 
 __all__ = [
