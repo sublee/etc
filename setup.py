@@ -8,7 +8,7 @@ An etcd client library for humans.
 """
 import os
 
-from setuptools import setup
+from setuptools import find_packages, setup
 from setuptools.command.test import test
 
 
@@ -35,7 +35,7 @@ setup(
     description=about['__description__'],
     long_description=__doc__,
     platforms='any',
-    packages=['etc'],
+    packages=find_packages(),
     zip_safe=False,  # I don't like egg.
     classifiers=['Development Status :: 1 - Planning',
                  'Intended Audience :: Developers',
