@@ -27,6 +27,8 @@ class Node(object):
 
     __slots__ = ('key', 'modified_index', 'created_index', 'ttl', 'expiration')
 
+    __eq__ = __eq__
+
     def __init__(self, key, modified_index=None, created_index=None,
                  ttl=None, expiration=None):
         self.key = key
@@ -45,7 +47,12 @@ class Node(object):
         """Alias for `expiration`."""
         return self.expiration
 
-    __eq__ = __eq__
+    def __repr__(self):
+        options = [('modified_index', self.modified_index),
+                   ('created_index', self.created_index),
+                   ('ttl', self.ttl),
+                   ('expiration', self.expiration)]
+        return gen_repr(self.__class__, u'{0}', self.key, options=options)
 
 
 class Value(Node):
@@ -62,7 +69,7 @@ class Value(Node):
                    ('created_index', self.created_index),
                    ('ttl', self.ttl),
                    ('expiration', self.expiration)]
-        return gen_repr(self.__class__, u'{0}={1}',
+        return gen_repr(self.__class__, u'{0}=\'{1}\'',
                         self.key, self.value, options=options)
 
 
@@ -80,9 +87,6 @@ class Directory(Node):
         return [node.value for node in self.nodes]
 
     def __repr__(self):
-        key = self.key
-        if not key.endswith(u'/'):
-            key += u'/'
         return gen_repr(self.__class__, u'{0}[{1}]',
                         self.key, len(self.nodes), short=True)
 
