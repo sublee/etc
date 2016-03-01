@@ -45,8 +45,22 @@ most cases::
    <etc.Got <etc.Value /hello='Hello, world' ...> ...>
    >>> etcd.delete('/hello')
    <etc.Deleted ... prev_node=<etc.Value /hello='Hello, world' ...> ...>
+   >>> etcd.get('/hello')
+   Traceback (most recent call last):
+     ...
+   etc.errors.KeyNotFound: [100] Key not found (/hello)
 
-Directory node can be defined by `dir` parameter::
+All etcd result types are mapped with subclasses of :class:`etc.EtcdResult`;
+:class:`etc.Got`, :class:`etc.Set`, :class:`etc.Deleted`,
+:class:`etc.Created`, :class:`etc.Updated`, :class:`etc.Expired`,
+:class:`etc.ComparedThenSwapped`, :class:`etc.ComparedThenDeleted`.  A result
+contains a node which is an instance of :class:`etc.Node`.  There're 2
+subclasses; :class:`etc.Value` and :class:`etc.Directory`.  You will check
+whether a node is a directory or not by :func:`isinstance`::
+
+   isinstance(etcd.get('/etc').node, etc.Value)
+
+A directory node can be defined by `dir` parameter::
 
    >>> etcd.set('/container', dir=True)
    <etc.Set <etc.Directory /container[0] ...> ...>
