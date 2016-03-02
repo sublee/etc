@@ -50,7 +50,7 @@ setup(
                  'Programming Language :: Python :: Implementation :: CPython',
                  'Programming Language :: Python :: Implementation :: PyPy',
                  'Topic :: Software Development'],
-    install_requires=['requests'],
+    install_requires=['iso8601', 'requests'],
     tests_require=['pytest'],
     test_suite='...',
 )

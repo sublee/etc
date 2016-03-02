@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
 import os
 import threading
 import time
@@ -216,3 +217,8 @@ def test_compare(etcd):
         etcd.delete('/etc', prev_value=u'8')
     with pytest.raises(etc.KeyNotFound):
         etcd.delete('/etc')
+
+
+def test_expiration(etcd):
+    r = etcd.set('/etc', u'etc', ttl=10)
+    assert isinstance(r.expiration, datetime)

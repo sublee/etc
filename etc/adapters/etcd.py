@@ -10,6 +10,7 @@ import io
 import socket
 import sys
 
+import iso8601
 import requests
 from requests.packages.urllib3.exceptions import ReadTimeoutError
 import six
@@ -75,7 +76,8 @@ class EtcdAdapter(Adapter):
                       'created_index': int(data['createdIndex'])}
         ttl = data.get('ttl')
         if ttl is not None:
-            kwargs.update(ttl=ttl, expiration=data['expiration'])
+            expiration = iso8601.parse_date(data['expiration'])
+            kwargs.update(ttl=ttl, expiration=expiration)
         if 'value' in data:
             node_cls = Value
             args = (data['value'],)
