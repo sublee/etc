@@ -1,6 +1,6 @@
 # etc
 
-An etcd Python client library for humans.
+An etcd Python client library.
 
 [![Build Status]
 (https://img.shields.io/travis/sublee/etc.svg)]
