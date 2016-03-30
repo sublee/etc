@@ -244,13 +244,15 @@ def test_chunked_encoding_error(spawn):
                 '"ok","modifiedIndex":42,"createdIndex":42}}')
         # Bad response.
         conn, __ = server.accept()
-        conn.send(header)
+        conn.send(header.encode())
         conn.close()
         # Good response.
         conn, __ = server.accept()
-        conn.send(header + '%x\r\n%s\r\n0\r\n\r\n' % (len(data), data))
+        response = header + '%x\r\n%s\r\n0\r\n\r\n' % (len(data), data)
+        conn.send(response.encode())
         conn.close()
     spawn(bad_web_server)
     etcd = etc.etcd('http://127.0.0.1:%d' % port)
     r = etcd.wait('/etc')
     assert isinstance(r, etc.Set)
+    assert r.modified_index == r.created_index == 42
