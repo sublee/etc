@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 import os
+import socket
 import threading
 import time
 
@@ -222,3 +223,34 @@ def test_compare(etcd):
 def test_expiration(etcd):
     r = etcd.set('/etc', u'etc', ttl=10)
     assert isinstance(r.expiration, datetime)
+
+
+def test_chunked_encoding_error(spawn):
+    server = socket.socket()
+    server.bind(('', 0))
+    server.listen(0)
+    __, port = server.getsockname()
+    def bad_web_server():
+        header = '\r\n'.join([
+            'HTTP/1.1 200 OK',
+            'Content-Type: application/json',
+            'X-Etcd-Cluster-Id: 42',
+            'X-Etcd-Index: 42',
+            'X-Raft-Index: 42',
+            'X-Raft-Term: 42',
+            'Transfer-Encoding: chunked'
+        ]) + '\r\n\r\n'
+        data = ('{"action":"set","node":{"key":"/etc","value":'
+                '"ok","modifiedIndex":42,"createdIndex":42}}')
+        # Bad response.
+        conn, __ = server.accept()
+        conn.send(header)
+        conn.close()
+        # Good response.
+        conn, __ = server.accept()
+        conn.send(header + '%x\r\n%s\r\n0\r\n\r\n' % (len(data), data))
+        conn.close()
+    spawn(bad_web_server)
+    etcd = etc.etcd('http://127.0.0.1:%d' % port)
+    r = etcd.wait('/etc')
+    assert isinstance(r, etc.Set)

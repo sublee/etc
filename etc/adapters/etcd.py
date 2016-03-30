@@ -12,6 +12,7 @@ import sys
 
 import iso8601
 import requests
+from requests.exceptions import ChunkedEncodingError
 from requests.packages.urllib3.exceptions import ReadTimeoutError
 import six
 from six import reraise
@@ -149,13 +150,16 @@ class EtcdAdapter(Adapter):
                 try:
                     with self.session() as s:
                         res = s.get(url, params=params)
-                except TimedOut:
+                except (TimedOut, ChunkedEncodingError):
                     continue
                 else:
                     break
         else:
-            with self.session() as s:
-                res = s.get(url, params=params, timeout=timeout)
+            try:
+                with self.session() as s:
+                    res = s.get(url, params=params, timeout=timeout)
+            except ChunkedEncodingError:
+                raise TimedOut
         return self.wrap_response(res)
 
     def set(self, key, value=None, dir=False, ttl=None,

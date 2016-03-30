@@ -8,7 +8,11 @@ from __future__ import absolute_import
 import io
 
 
-__all__ = ['gen_repr', 'registry']
+__all__ = ['gen_repr', 'Missing', 'registry']
+
+
+#: The placeholder for missing parameters.
+Missing = object()
 
 
 def registry(attr, base=type):
