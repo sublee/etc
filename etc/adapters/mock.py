@@ -108,6 +108,11 @@ class MockAdapter(Adapter):
         self.indices = {}
         self.events = {}
 
+    def clear(self):
+        self.history.clear()
+        self.indices.clear()
+        self.events.clear()
+
     def next_index(self):
         """Gets the next etcd index."""
         self.index += 1

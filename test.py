@@ -256,3 +256,13 @@ def test_chunked_encoding_error(spawn):
     r = etcd.wait('/etc')
     assert isinstance(r, etc.Set)
     assert r.modified_index == r.created_index == 42
+
+
+def test_session(monkeypatch):
+    etcd = etc.etcd(ETC_TEST_ETCD_URL)
+    etcd.get('/')
+    monkeypatch.setattr(socket.socket, 'connect', lambda *a, **k: 0 / 0)
+    etcd.get('/')
+    etcd.clear()
+    with pytest.raises(ZeroDivisionError):
+        etcd.get('/')

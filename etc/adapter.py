@@ -59,6 +59,9 @@ class Adapter(six.with_metaclass(AdapterMeta)):
     def __init__(self, url):
         self.url = url
 
+    def clear(self):
+        pass
+
     def get(self, key, recursive=False, sorted=False, quorum=False,
             wait=False, wait_index=None, timeout=None):
         raise NotImplementedError

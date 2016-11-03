@@ -5,7 +5,6 @@
 """
 from __future__ import absolute_import
 
-from contextlib import contextmanager
 import io
 import socket
 import sys
@@ -32,24 +31,10 @@ class EtcdAdapter(Adapter):
     def __init__(self, url, default_timeout=60):
         super(EtcdAdapter, self).__init__(url)
         self.default_timeout = default_timeout
-        self._session = requests.Session()
+        self.session = requests.Session()
 
-    @contextmanager
-    def session(self):
-        """Manages a :mod:`requests` session context.  It wraps some of
-        exceptions from :mod:`requests` by an :mod:`etc` exception.
-        """
-        try:
-            with self._session as session:
-                yield session
-        except socket.timeout:
-            raise TimedOut
-        except requests.ConnectionError as exc:
-            exc_info = sys.exc_info()
-            internal_exc = exc.args[0]
-            if isinstance(internal_exc, ReadTimeoutError):
-                raise TimedOut
-            reraise(*exc_info)
+    def clear(self):
+        self.session.close()
 
     def make_url(self, path, api_root=u'/v2/'):
         """Gets a full URL from just path."""
@@ -133,6 +118,25 @@ class EtcdAdapter(Adapter):
                 args[key] = value
         return args
 
+    @staticmethod
+    def erred():
+        """Wraps errors.  Call it in `except` clause::
+
+           try:
+               do_something()
+           except:
+               self.erred()
+
+        """
+        exc_type, exc, tb = sys.exc_info()
+        if issubclass(exc_type, socket.timeout):
+            raise TimedOut
+        elif issubclass(exc_type, requests.ConnectionError):
+            internal_exc = exc.args[0]
+            if isinstance(internal_exc, ReadTimeoutError):
+                raise TimedOut
+        reraise(exc_type, exc, tb)
+
     def get(self, key, recursive=False, sorted=False, quorum=False,
             wait=False, wait_index=None, timeout=None):
         """Requests to get a node by the given key."""
@@ -148,18 +152,21 @@ class EtcdAdapter(Adapter):
             # Try again when :exc:`TimedOut` thrown.
             while True:
                 try:
-                    with self.session() as s:
-                        res = s.get(url, params=params)
+                    try:
+                        res = self.session.get(url, params=params)
+                    except:
+                        self.erred()
                 except (TimedOut, ChunkedEncodingError):
                     continue
                 else:
                     break
         else:
             try:
-                with self.session() as s:
-                    res = s.get(url, params=params, timeout=timeout)
+                res = self.session.get(url, params=params, timeout=timeout)
             except ChunkedEncodingError:
                 raise TimedOut
+            except:
+                self.erred()
         return self.wrap_response(res)
 
     def set(self, key, value=None, dir=False, ttl=None,
@@ -174,8 +181,10 @@ class EtcdAdapter(Adapter):
             'prevIndex': (int, prev_index),
             'prevExist': (bool, prev_exist),
         })
-        with self.session() as s:
-            res = s.put(url, data=data, timeout=timeout)
+        try:
+            res = self.session.put(url, data=data, timeout=timeout)
+        except:
+            self.erred()
         return self.wrap_response(res)
 
     def append(self, key, value=None, dir=False, ttl=None, timeout=None):
@@ -186,8 +195,10 @@ class EtcdAdapter(Adapter):
             'dir': (bool, dir or None),
             'ttl': (int, ttl),
         })
-        with self.session() as s:
-            res = s.post(url, data=data, timeout=timeout)
+        try:
+            res = self.session.post(url, data=data, timeout=timeout)
+        except:
+            self.erred()
         return self.wrap_response(res)
 
     def delete(self, key, dir=False, recursive=False,
@@ -200,6 +211,8 @@ class EtcdAdapter(Adapter):
             'prevValue': (six.text_type, prev_value),
             'prevIndex': (int, prev_index),
         })
-        with self.session() as s:
-            res = s.delete(url, params=params, timeout=timeout)
+        try:
+            res = self.session.delete(url, params=params, timeout=timeout)
+        except:
+            self.erred()
         return self.wrap_response(res)
