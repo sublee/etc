@@ -169,13 +169,14 @@ class EtcdAdapter(Adapter):
                 self.erred()
         return self.wrap_response(res)
 
-    def set(self, key, value=None, dir=False, ttl=None,
+    def set(self, key, value=None, dir=False, refresh=False, ttl=None,
             prev_value=None, prev_index=None, prev_exist=None, timeout=None):
         """Requests to create an ordered node into a node by the given key."""
         url = self.make_key_url(key)
         data = self.build_args({
             'value': (six.text_type, value),
             'dir': (bool, dir or None),
+            'refresh': (bool, refresh or None),
             'ttl': (int, ttl),
             'prevValue': (six.text_type, prev_value),
             'prevIndex': (int, prev_index),

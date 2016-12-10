@@ -39,10 +39,10 @@ class Client(object):
                                 quorum=quorum, wait=True, wait_index=index,
                                 timeout=timeout)
 
-    def set(self, key, value=None, dir=False, ttl=None,
+    def set(self, key, value=None, dir=False, refresh=False, ttl=None,
             prev_value=None, prev_index=None, timeout=None):
         """Sets a value to a key."""
-        return self.adapter.set(key, value, dir=dir, ttl=ttl,
+        return self.adapter.set(key, value, dir=dir, refresh=refresh, ttl=ttl,
                                 prev_value=prev_value, prev_index=prev_index,
                                 timeout=timeout)
 

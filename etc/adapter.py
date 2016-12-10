@@ -66,7 +66,7 @@ class Adapter(six.with_metaclass(AdapterMeta)):
             wait=False, wait_index=None, timeout=None):
         raise NotImplementedError
 
-    def set(self, key, value=None, dir=False, ttl=None,
+    def set(self, key, value=None, dir=False, refresh=False, ttl=None,
             prev_value=None, prev_index=None, prev_exist=None, timeout=None):
         raise NotImplementedError
 
