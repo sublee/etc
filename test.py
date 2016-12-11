@@ -25,6 +25,9 @@ def node_values(nodes):
 @pytest.fixture(params=['etcd', 'mock'])
 def etcd(request):
     mode = request.param
+    mark = request.node.get_marker('etcd')
+    if mark and mode in mark.kwargs.get('skip', ()):
+        pytest.skip('%s skips for %s' % (request.node.name, mode))
     if mode == 'etcd':
         etcd = etc.etcd(ETC_TEST_ETCD_URL)
     elif mode == 'mock':
@@ -268,6 +271,7 @@ def test_session(monkeypatch):
         etcd.get('/')
 
 
+@pytest.mark.etcd(skip=['mock'])
 def test_refresh(etcd, spawn):
     with pytest.raises(etc.KeyNotFound):
         # Key not set yet.

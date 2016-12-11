@@ -230,8 +230,7 @@ class MockAdapter(Adapter):
             result_class = Updated if prev_exist or should_test else Set
             notify = True
         return self.make_result(result_class, node,
-                                key_chunks=key_chunks,
-                                notify=notify)
+                                key_chunks=key_chunks, notify=notify)
 
     def append(self, key, value=None, dir=False, ttl=None, timeout=None):
         expiration = ttl and (datetime.utcnow() + timedelta(ttl))
