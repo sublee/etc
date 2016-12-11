@@ -268,7 +268,7 @@ def test_session(monkeypatch):
         etcd.get('/')
 
 
-def test_refresh(etcd):
+def test_refresh(etcd, spawn):
     with pytest.raises(etc.KeyNotFound):
         # Key not set yet.
         etcd.set('/etc', ttl=1, refresh=True)
@@ -280,6 +280,19 @@ def test_refresh(etcd):
         etcd.set('/etc', ttl=1, refresh=True, prev_index=r.index - 1)
     r = etcd.set('/etc', ttl=1, refresh=True, prev_index=r.index)
     assert isinstance(r, etc.ComparedThenSwapped)
+    r = etcd.set('/etc', ttl=1, refresh=True)
+    assert isinstance(r, etc.Set)
+    # Only for files.
     etcd.set('/dir', dir=True)
     with pytest.raises(etc.NotFile):
         etcd.set('/dir', ttl=1, refresh=True)
+    # Don't wake up many times.
+    t = time.time()
+    etcd.set('/etc', u'etc', ttl=0)
+    results = set()
+    spawn(lambda: results.add(etcd.set('/etc', ttl=1, refresh=True)))
+    r = etcd.wait('/etc')
+    assert results
+    assert isinstance(r, etc.Expired)
+    assert r.index > next(iter(results)).index
+    assert time.time() - t >= 1
