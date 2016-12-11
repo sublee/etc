@@ -293,10 +293,10 @@ def test_refresh(etcd, spawn):
     # Don't wake up many times.
     t = time.time()
     etcd.set('/etc', u'etc', ttl=0)
-    results = set()
-    spawn(lambda: results.add(etcd.set('/etc', ttl=1, refresh=True)))
+    results = []
+    spawn(lambda: results.append(etcd.set('/etc', ttl=1, refresh=True)))
     r = etcd.wait('/etc')
     assert results
     assert isinstance(r, etc.Expired)
-    assert r.index > next(iter(results)).index
+    assert r.index > results[0].index
     assert time.time() - t >= 1
