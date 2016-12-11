@@ -38,9 +38,10 @@ class AdapterMeta(type):
         return super(AdapterMeta, meta).__new__(meta, name, bases, attrs)
 
     @staticmethod
-    def verify_set(key, value=None, dir=False, ttl=None, prev_value=None,
-                   prev_index=None, prev_exist=None, timeout=None):
-        if (value is None) == (not dir):
+    def verify_set(key, value=None, dir=False, ttl=None, refresh=False,
+                   prev_value=None, prev_index=None, prev_exist=None,
+                   timeout=None):
+        if not refresh and (value is None) == (not dir):
             raise ValueError('Set value or make as directory')
         if value is not None and not isinstance(value, six.text_type):
             raise TypeError('Set %s value' % six.text_type.__name__)
@@ -66,7 +67,7 @@ class Adapter(six.with_metaclass(AdapterMeta)):
             wait=False, wait_index=None, timeout=None):
         raise NotImplementedError
 
-    def set(self, key, value=None, dir=False, refresh=False, ttl=None,
+    def set(self, key, value=None, dir=False, ttl=None, refresh=False,
             prev_value=None, prev_index=None, prev_exist=None, timeout=None):
         raise NotImplementedError
 

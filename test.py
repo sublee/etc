@@ -266,3 +266,20 @@ def test_session(monkeypatch):
     etcd.clear()
     with pytest.raises(ZeroDivisionError):
         etcd.get('/')
+
+
+def test_refresh(etcd):
+    with pytest.raises(etc.KeyNotFound):
+        # Key not set yet.
+        etcd.set('/etc', ttl=1, refresh=True)
+    r = etcd.set('/etc', u'etc')
+    with pytest.raises(etc.RefreshValue):
+        # To refresh TTL, don't pass value.
+        etcd.set('/etc', u'etc', ttl=1, refresh=True)
+    with pytest.raises(etc.TestFailed):
+        etcd.set('/etc', ttl=1, refresh=True, prev_index=r.index - 1)
+    r = etcd.set('/etc', ttl=1, refresh=True, prev_index=r.index)
+    assert isinstance(r, etc.ComparedThenSwapped)
+    etcd.set('/dir', dir=True)
+    with pytest.raises(etc.NotFile):
+        etcd.set('/dir', ttl=1, refresh=True)

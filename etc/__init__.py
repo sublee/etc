@@ -16,20 +16,20 @@
 """
 from __future__ import absolute_import
 
-from .__about__ import __version__  # noqa
-from .client import Client
-from .errors import (
+from etc.__about__ import __version__  # noqa
+from etc.client import Client
+from etc.errors import (
     ConnectionError, ConnectionRefused, DirNotEmpty, EtcdError, EtcException,
     EventIndexCleared, ExistingPeerAddr, IndexNaN, IndexOrValueRequired,
     IndexValueMutex, InvalidActiveSize, InvalidField, InvalidForm,
     InvalidRemoveDelay, KeyIsPreserved, KeyNotFound, LeaderElect, NameRequired,
     NodeExist, NoMorePeer, NotDir, NotFile, PrevValueRequired, RaftInternal,
-    RootROnly, StandbyInternal, TestFailed, TimedOut, TimeoutNaN, TTLNaN,
-    Unauthorized, ValueOrTTLRequired, ValueRequired, WatcherCleared)
-from .results import (
+    RefreshTTLRequired, RefreshValue, RootROnly, StandbyInternal, TestFailed,
+    TimedOut, TimeoutNaN, TTLNaN, Unauthorized, ValueOrTTLRequired,
+    ValueRequired, WatcherCleared)
+from etc.results import (
     ComparedThenDeleted, ComparedThenSwapped, Created, Deleted, Directory,
     EtcdResult, Expired, Got, Node, Set, Updated, Value)
-# from .errors import
 
 
 __all__ = [
@@ -43,9 +43,10 @@ __all__ = [
     'IndexOrValueRequired', 'IndexValueMutex', 'InvalidActiveSize',
     'InvalidField', 'InvalidForm', 'InvalidRemoveDelay', 'KeyIsPreserved',
     'KeyNotFound', 'LeaderElect', 'NameRequired', 'NodeExist', 'NoMorePeer',
-    'NotDir', 'NotFile', 'PrevValueRequired', 'RaftInternal', 'RootROnly',
-    'StandbyInternal', 'TestFailed', 'TimedOut', 'TimeoutNaN', 'TTLNaN',
-    'Unauthorized', 'ValueOrTTLRequired', 'ValueRequired', 'WatcherCleared',
+    'NotDir', 'NotFile', 'PrevValueRequired', 'RaftInternal',
+    'RefreshTTLRequired', 'RefreshValue', 'RootROnly', 'StandbyInternal',
+    'TestFailed', 'TimedOut', 'TimeoutNaN', 'TTLNaN', 'Unauthorized',
+    'ValueOrTTLRequired', 'ValueRequired', 'WatcherCleared',
     # etc.results
     'ComparedThenDeleted', 'ComparedThenSwapped', 'Created', 'Deleted',
     'Directory', 'EtcdResult', 'Expired', 'Got', 'Node', 'Set', 'Updated',
@@ -59,9 +60,9 @@ DEFAULT_URL = 'http://127.0.0.1:4001'
 def etcd(url=DEFAULT_URL, mock=False, **kwargs):
     """Creates an etcd client."""
     if mock:
-        from .adapters.mock import MockAdapter
+        from etc.adapters.mock import MockAdapter
         adapter_class = MockAdapter
     else:
-        from .adapters.etcd import EtcdAdapter
+        from etc.adapters.etcd import EtcdAdapter
         adapter_class = EtcdAdapter
     return Client(adapter_class(url, **kwargs))

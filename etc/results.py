@@ -7,7 +7,7 @@ from __future__ import absolute_import
 
 import six
 
-from .helpers import gen_repr, registry
+from etc.helpers import gen_repr, registry
 
 
 __all__ = ['ComparedThenDeleted', 'ComparedThenSwapped', 'Created', 'Deleted',

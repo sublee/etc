@@ -5,7 +5,7 @@
 """
 from __future__ import absolute_import
 
-from .helpers import gen_repr
+from etc.helpers import gen_repr
 
 
 __all__ = ['Client']
@@ -39,10 +39,19 @@ class Client(object):
                                 quorum=quorum, wait=True, wait_index=index,
                                 timeout=timeout)
 
-    def set(self, key, value=None, dir=False, refresh=False, ttl=None,
+    def set(self, key, value=None, dir=False, ttl=None, refresh=False,
             prev_value=None, prev_index=None, timeout=None):
         """Sets a value to a key."""
-        return self.adapter.set(key, value, dir=dir, refresh=refresh, ttl=ttl,
+        return self.adapter.set(key, value, dir=dir, ttl=ttl, refresh=refresh,
+                                prev_value=prev_value, prev_index=prev_index,
+                                timeout=timeout)
+
+    def refresh(self, key, ttl, dir=False,
+                prev_value=None, prev_index=None, timeout=None):
+        """Sets only a TTL of a key.  The waiters doesn't receive notification
+        by this operation.
+        """
+        return self.adapter.set(key, dir=dir, ttl=ttl, refresh=True,
                                 prev_value=prev_value, prev_index=prev_index,
                                 timeout=timeout)
 

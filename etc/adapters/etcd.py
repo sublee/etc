@@ -17,9 +17,9 @@ import six
 from six import reraise
 from six.moves.urllib.parse import urljoin
 
-from ..adapter import Adapter
-from ..errors import EtcdError, TimedOut
-from ..results import Directory, EtcdResult, Node, Value
+from etc.adapter import Adapter
+from etc.errors import EtcdError, TimedOut
+from etc.results import Directory, EtcdResult, Node, Value
 
 
 __all__ = ['EtcdAdapter']

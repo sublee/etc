@@ -14,10 +14,13 @@ import threading
 import six
 from six.moves import reduce, xrange
 
-from ..adapter import Adapter
-from ..errors import KeyNotFound, NodeExist, TestFailed, TimedOut
-from ..results import (
-    Created, Deleted, Directory, Got, Node, Set, Updated, Value)
+from etc.adapter import Adapter
+from etc.errors import (
+    KeyNotFound, NodeExist, NotFile, RefreshTTLRequired, RefreshValue,
+    TestFailed, TimedOut)
+from etc.results import (
+    ComparedThenSwapped, Created, Deleted, Directory, Got, Node, Set, Updated,
+    Value)
 
 
 __all__ = ['MockAdapter']
@@ -119,7 +122,7 @@ class MockAdapter(Adapter):
         return self.index
 
     def make_result(self, result_class, node=None, prev_node=None,
-                    remember=True, key_chunks=None, **kwargs):
+                    remember=True, key_chunks=None, notify=True, **kwargs):
         """Makes an etcd result.
 
         If `remember` is ``True``, it keeps the result in the history and
@@ -147,13 +150,14 @@ class MockAdapter(Adapter):
             exact = _key_chunks == key_chunks
             self.indices.setdefault(_key_chunks, []).append((index, exact))
             event_keys.append((True, _key_chunks))
-        for event_key in event_keys:
-            try:
-                event = self.events.pop(event_key)
-            except KeyError:
-                pass
-            else:
-                event.set()
+        if notify:
+            for event_key in event_keys:
+                try:
+                    event = self.events.pop(event_key)
+                except KeyError:
+                    pass
+                else:
+                    event.set()
         return result
 
     def compare(self, node, prev_value=None, prev_index=None):
@@ -190,8 +194,14 @@ class MockAdapter(Adapter):
         index, __ = self.indices[key_chunks][-1]
         return self.history[index]
 
-    def set(self, key, value=None, dir=False, refresh=False, ttl=None,
+    def set(self, key, value=None, dir=False, ttl=None, refresh=False,
             prev_value=None, prev_index=None, prev_exist=None, timeout=None):
+        if refresh:
+            prev_exist = True
+            if value is not None:
+                raise RefreshValue(index=self.index)
+            elif ttl is None:
+                raise RefreshTTLRequired(index=self.index)
         expiration = ttl and (datetime.utcnow() + timedelta(ttl))
         key_chunks = split_key(key)
         index = self.next_index()
@@ -207,10 +217,21 @@ class MockAdapter(Adapter):
         else:
             if prev_exist is not None and not prev_exist:
                 raise NodeExist(index=self.index)
+            if refresh:
+                if node.dir:
+                    raise NotFile(index=self.index)
+                value = node.value
             self.compare(node, prev_value, prev_index)
             node.set(index, value, dir, ttl, expiration)
-        return self.make_result(Updated if prev_exist or should_test else Set,
-                                node, key_chunks=key_chunks)
+        if refresh:
+            result_class = ComparedThenSwapped if should_test else Set
+            notify = False
+        else:
+            result_class = Updated if prev_exist or should_test else Set
+            notify = True
+        return self.make_result(result_class, node,
+                                key_chunks=key_chunks,
+                                notify=notify)
 
     def append(self, key, value=None, dir=False, ttl=None, timeout=None):
         expiration = ttl and (datetime.utcnow() + timedelta(ttl))

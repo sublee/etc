@@ -9,7 +9,7 @@ import socket
 
 import six
 
-from .helpers import gen_repr, registry
+from etc.helpers import gen_repr, registry
 
 
 __all__ = ['ConnectionError', 'ConnectionRefused', 'DirNotEmpty', 'EtcdError',
@@ -18,9 +18,10 @@ __all__ = ['ConnectionError', 'ConnectionRefused', 'DirNotEmpty', 'EtcdError',
            'InvalidField', 'InvalidForm', 'InvalidRemoveDelay',
            'KeyIsPreserved', 'KeyNotFound', 'LeaderElect', 'NameRequired',
            'NodeExist', 'NoMorePeer', 'NotDir', 'NotFile', 'PrevValueRequired',
-           'RaftInternal', 'RootROnly', 'StandbyInternal', 'TestFailed',
-           'TimedOut', 'TimeoutNaN', 'TTLNaN', 'Unauthorized',
-           'ValueOrTTLRequired', 'ValueRequired', 'WatcherCleared']
+           'RaftInternal', 'RefreshTTLRequired', 'RefreshValue', 'RootROnly',
+           'StandbyInternal', 'TestFailed', 'TimedOut', 'TimeoutNaN', 'TTLNaN',
+           'Unauthorized', 'ValueOrTTLRequired', 'ValueRequired',
+           'WatcherCleared']
 
 
 class EtcException(Exception):
@@ -89,6 +90,8 @@ IndexOrValueRequired = def_etcd_error('IndexOrValueRequired', 207)  # private
 IndexValueMutex = def_etcd_error('IndexValueMutex', 208)  # private
 InvalidField = def_etcd_error('InvalidField', 209)
 InvalidForm = def_etcd_error('InvalidForm', 210)
+RefreshValue = def_etcd_error('RefreshValue', 211)
+RefreshTTLRequired = def_etcd_error('RefreshTTLRequired', 212)
 
 
 # Raft related errors.
