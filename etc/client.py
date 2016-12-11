@@ -46,12 +46,12 @@ class Client(object):
                                 prev_value=prev_value, prev_index=prev_index,
                                 timeout=timeout)
 
-    def refresh(self, key, ttl, dir=False,
-                prev_value=None, prev_index=None, timeout=None):
+    def refresh(self, key, ttl, prev_value=None, prev_index=None,
+                timeout=None):
         """Sets only a TTL of a key.  The waiters doesn't receive notification
         by this operation.
         """
-        return self.adapter.set(key, dir=dir, ttl=ttl, refresh=True,
+        return self.adapter.set(key, ttl=ttl, refresh=True,
                                 prev_value=prev_value, prev_index=prev_index,
                                 timeout=timeout)
 
