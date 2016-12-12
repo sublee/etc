@@ -60,10 +60,10 @@ class Client(object):
         return self.adapter.set(key, value, dir=dir, ttl=ttl,
                                 prev_exist=False, timeout=timeout)
 
-    def update(self, key, value=None, dir=False, ttl=None,
+    def update(self, key, value=None, dir=False, ttl=None, refresh=False,
                prev_value=None, prev_index=None, timeout=None):
         """Updates an existing key."""
-        return self.adapter.set(key, value, dir=dir, ttl=ttl,
+        return self.adapter.set(key, value, dir=dir, ttl=ttl, refresh=refresh,
                                 prev_value=prev_value, prev_index=prev_index,
                                 prev_exist=True, timeout=timeout)
 
