@@ -2,12 +2,10 @@
 
 An etcd Python client library.
 
-[![Build Status]
-(https://img.shields.io/travis/sublee/etc.svg)]
-(https://travis-ci.org/sublee/etc)
-[![Coverage Status]
-(https://img.shields.io/coveralls/sublee/etc.svg)]
-(https://coveralls.io/r/sublee/etc)
+[![Build Status](https://img.shields.io/travis/sublee/etc.svg)
+](https://travis-ci.org/sublee/etc)
+[![Coverage Status](https://img.shields.io/coveralls/sublee/etc.svg)
+](https://coveralls.io/r/sublee/etc)
 
 ```python
 >>> import etc
