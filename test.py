@@ -11,7 +11,7 @@ from six import b, u
 import etc
 
 
-ETC_TEST_ETCD_URL = os.getenv('ETC_TEST_ETCD_URL', 'http://127.0.0.1:4001')
+ETC_TEST_ETCD_URL = os.getenv('ETC_TEST_ETCD_URL', 'http://127.0.0.1:2379')
 
 
 def node_keys(nodes):
