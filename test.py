@@ -231,7 +231,7 @@ def test_expiration(etcd):
 def test_chunked_encoding_error(spawn):
     server = socket.socket()
     server.bind(('', 0))
-    server.listen(0)
+    server.listen(10)
     __, port = server.getsockname()
     def bad_web_server():
         header = '\r\n'.join([
