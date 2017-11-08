@@ -247,11 +247,13 @@ def test_chunked_encoding_error(spawn):
                 '"ok","modifiedIndex":42,"createdIndex":42}}')
         # Bad response.
         conn, __ = server.accept()
+        conn.recv(999999)
         conn.send(header.encode())
         conn.close()
         # Good response.
         conn, __ = server.accept()
         response = header + '%x\r\n%s\r\n0\r\n\r\n' % (len(data), data)
+        conn.recv(999999)
         conn.send(response.encode())
         conn.close()
     spawn(bad_web_server)
@@ -308,12 +310,9 @@ def test_503_service_unavailable(spawn):
     server.listen(10)
     __, port = server.getsockname()
     def dead_web_server():
-        response = '\r\n'.join([
-            'HTTP/1.1 503 Service Unavailable',
-            'Content-Type: text/html; charset=UTF-8',
-            'Connection: close',
-        ]) + '\r\n\r\n'
+        response = 'HTTP/1.1 503 Service Unavailable\r\n\r\n'
         conn, __ = server.accept()
+        conn.recv(999999)
         conn.send(response.encode())
         conn.close()
     spawn(dead_web_server)
