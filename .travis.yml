@@ -8,7 +8,6 @@ python:
 - 3.4
 - 3.5
 - pypy
-- pypy3
 env:
   matrix:
   - ETCD_VERSION=2.3.7
