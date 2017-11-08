@@ -18,7 +18,7 @@ from six import reraise
 from six.moves.urllib.parse import urljoin
 
 from etc.adapter import Adapter
-from etc.errors import EtcdError, TimedOut
+from etc.errors import EtcdError, HTTPError, TimedOut
 from etc.results import Directory, EtcdResult, Node, Value
 
 
@@ -103,8 +103,13 @@ class EtcdAdapter(Adapter):
     def wrap_response(cls, res):
         if res.ok:
             return cls.make_result(res.json(), res.headers)
+
+        try:
+            json = res.json()
+        except ValueError:
+            raise HTTPError(res.status_code)
         else:
-            raise cls.make_error(res.json())
+            raise cls.make_error(json)
 
     @staticmethod
     def build_args(typed_args):

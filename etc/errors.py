@@ -13,12 +13,13 @@ from etc.helpers import gen_repr, registry
 
 
 __all__ = ['ConnectionError', 'ConnectionRefused', 'DirNotEmpty', 'EtcdError',
-           'EtcException', 'EventIndexCleared', 'ExistingPeerAddr', 'IndexNaN',
-           'IndexOrValueRequired', 'IndexValueMutex', 'InvalidActiveSize',
-           'InvalidField', 'InvalidForm', 'InvalidRemoveDelay',
-           'KeyIsPreserved', 'KeyNotFound', 'LeaderElect', 'NameRequired',
-           'NodeExist', 'NoMorePeer', 'NotDir', 'NotFile', 'PrevValueRequired',
-           'RaftInternal', 'RefreshTTLRequired', 'RefreshValue', 'RootROnly',
+           'EtcException', 'EventIndexCleared', 'ExistingPeerAddr',
+           'HTTPError', 'IndexNaN', 'IndexOrValueRequired', 'IndexValueMutex',
+           'InvalidActiveSize', 'InvalidField', 'InvalidForm',
+           'InvalidRemoveDelay', 'KeyIsPreserved', 'KeyNotFound',
+           'LeaderElect', 'NameRequired', 'NodeExist', 'NoMorePeer', 'NotDir',
+           'NotFile', 'PrevValueRequired', 'RaftInternal',
+           'RefreshTTLRequired', 'RefreshValue', 'RootROnly',
            'StandbyInternal', 'TestFailed', 'TimedOut', 'TimeoutNaN', 'TTLNaN',
            'Unauthorized', 'ValueOrTTLRequired', 'ValueRequired',
            'WatcherCleared']
@@ -105,6 +106,15 @@ EventIndexCleared = def_etcd_error('EventIndexCleared', 401)
 StandbyInternal = def_etcd_error('StandbyInternal', 402)  # private
 InvalidActiveSize = def_etcd_error('InvalidActiveSize', 403)  # private
 InvalidRemoveDelay = def_etcd_error('InvalidRemoveDelay', 404)  # private
+
+
+class HTTPError(EtcException):
+    """An HTTP status failure."""
+
+    __slots__ = ('status_code',)
+
+    def __init__(self, status_code=500):
+        self.status_code = status_code
 
 
 class ConnectionError(EtcException, socket.error):
