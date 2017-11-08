@@ -20,12 +20,12 @@ from etc.__about__ import __version__  # noqa
 from etc.client import Client
 from etc.errors import (
     ConnectionError, ConnectionRefused, DirNotEmpty, EtcdError, EtcException,
-    EventIndexCleared, ExistingPeerAddr, IndexNaN, IndexOrValueRequired,
-    IndexValueMutex, InvalidActiveSize, InvalidField, InvalidForm,
-    InvalidRemoveDelay, KeyIsPreserved, KeyNotFound, LeaderElect, NameRequired,
-    NodeExist, NoMorePeer, NotDir, NotFile, PrevValueRequired, RaftInternal,
-    RefreshTTLRequired, RefreshValue, RootROnly, StandbyInternal, TestFailed,
-    TimedOut, TimeoutNaN, TTLNaN, Unauthorized, ValueOrTTLRequired,
+    EventIndexCleared, ExistingPeerAddr, HTTPError, IndexNaN,
+    IndexOrValueRequired, IndexValueMutex, InvalidActiveSize, InvalidField,
+    InvalidForm, InvalidRemoveDelay, KeyIsPreserved, KeyNotFound, LeaderElect,
+    NameRequired, NodeExist, NoMorePeer, NotDir, NotFile, PrevValueRequired,
+    RaftInternal, RefreshTTLRequired, RefreshValue, RootROnly, StandbyInternal,
+    TestFailed, TimedOut, TimeoutNaN, TTLNaN, Unauthorized, ValueOrTTLRequired,
     ValueRequired, WatcherCleared)
 from etc.results import (
     ComparedThenDeleted, ComparedThenSwapped, Created, Deleted, Directory,
