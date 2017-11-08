@@ -261,6 +261,7 @@ def test_chunked_encoding_error(spawn):
     r = etcd.wait('/etc')
     assert isinstance(r, etc.Set)
     assert r.modified_index == r.created_index == 42
+    server.close()
 
 
 def test_session(monkeypatch):
@@ -320,3 +321,4 @@ def test_503_service_unavailable(spawn):
     with pytest.raises(etc.HTTPError) as excinfo:
         etcd.get('/etc')
     assert excinfo.value.status_code == 503
+    server.close()
