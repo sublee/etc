@@ -300,3 +300,24 @@ def test_refresh(etcd, spawn):
     assert isinstance(r, etc.Expired)
     assert r.index > results[0].index
     assert time.time() - t >= 1
+
+
+def test_503_service_unavailable(spawn):
+    server = socket.socket()
+    server.bind(('', 0))
+    server.listen(10)
+    __, port = server.getsockname()
+    def dead_web_server():
+        response = '\r\n'.join([
+            'HTTP/1.1 503 Service Unavailable',
+            'Content-Type: text/html; charset=UTF-8',
+            'Connection: close',
+        ]) + '\r\n\r\n'
+        conn, __ = server.accept()
+        conn.send(response.encode())
+        conn.close()
+    spawn(dead_web_server)
+    etcd = etc.etcd('http://127.0.0.1:%d' % port)
+    with pytest.raises(etc.HTTPError) as excinfo:
+        etcd.get('/etc')
+    assert excinfo.value.status_code == 503
