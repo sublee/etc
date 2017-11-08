@@ -10,7 +10,7 @@
    - Proper options for actions.
    - Sugars for most cases.
 
-   :copyright: (c) 2016 by Heungsub Lee
+   :copyright: (c) 2016-2017 by Heungsub Lee
    :license: BSD, see LICENSE for more details.
 
 """
