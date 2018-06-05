@@ -98,7 +98,12 @@ class EtcdAdapter(Adapter):
         message = data['message']
         cause = data['cause']
         index = data['index']
-        return EtcdError.__dispatch__(errno)(message, cause, index)
+        kwargs = {}
+        if headers:
+            kwargs.update(etcd_index=int(headers['X-Etcd-Index']),
+                          raft_index=int(headers['X-Raft-Index']),
+                          raft_term=int(headers['X-Raft-Term']))
+        return EtcdError.__dispatch__(errno)(message, cause, index, **kwargs)
 
     @classmethod
     def wrap_response(cls, res):
@@ -110,7 +115,7 @@ class EtcdAdapter(Adapter):
         except ValueError:
             raise HTTPError(res.status_code)
         else:
-            raise cls.make_error(json)
+            raise cls.make_error(json, res.headers)
 
     @staticmethod
     def build_args(typed_args):

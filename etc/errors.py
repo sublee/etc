@@ -34,14 +34,19 @@ class EtcException(Exception):
 class EtcdError(six.with_metaclass(registry('errno'), EtcException)):
     """A failed etcd result."""
 
-    __slots__ = ('message', 'cause', 'index')
+    __slots__ = ('message', 'cause', 'index',
+                 'etcd_index', 'raft_index', 'raft_term')
 
     errno = NotImplemented
 
-    def __init__(self, message=None, cause=None, index=None):
+    def __init__(self, message=None, cause=None, index=None,
+                 etcd_index=None, raft_index=None, raft_term=None):
         self.message = message
         self.cause = cause
         self.index = index
+        self.etcd_index = etcd_index
+        self.raft_index = raft_index
+        self.raft_term = raft_term
 
     @property
     def args(self):

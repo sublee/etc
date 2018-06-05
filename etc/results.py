@@ -95,7 +95,8 @@ class EtcdResult(six.with_metaclass(registry('action'))):
 
     """
 
-    __slots__ = ('node', 'prev_node', 'etcd_index', 'raft_index', 'raft_term')
+    __slots__ = ('node', 'prev_node',
+                 'etcd_index', 'raft_index', 'raft_term')
 
     action = NotImplemented
 
