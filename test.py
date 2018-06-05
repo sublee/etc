@@ -322,3 +322,20 @@ def test_503_service_unavailable(spawn):
         etcd.get('/etc')
     assert excinfo.value.status_code == 503
     server.close()
+
+
+def test_bad_status_line(spawn):
+    server = socket.socket()
+    server.bind(('', 0))
+    server.listen(10)
+    __, port = server.getsockname()
+    def bad_status_line_web_server():
+        conn, __ = server.accept()
+        conn.send('\r\n')
+        conn.close()
+    spawn(bad_status_line_web_server)
+    etcd = etc.etcd('http://127.0.0.1:%d' % port)
+    with pytest.raises(etc.ConnectionError) as excinfo:
+        etcd.get('/etc')
+    assert 'BadStatusLine' in str(excinfo.value)
+    server.close()
