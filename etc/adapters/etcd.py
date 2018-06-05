@@ -18,7 +18,8 @@ from six import reraise
 from six.moves.urllib.parse import urljoin
 
 from etc.adapter import Adapter
-from etc.errors import EtcdError, HTTPError, TimedOut
+from etc.errors import (
+    ConnectionError, EtcdError, EtcException, HTTPError, TimedOut)
 from etc.results import Directory, EtcdResult, Node, Value
 
 
@@ -140,6 +141,10 @@ class EtcdAdapter(Adapter):
             internal_exc = exc.args[0]
             if isinstance(internal_exc, ReadTimeoutError):
                 raise TimedOut
+            else:
+                raise ConnectionError(exc)
+        elif issubclass(exc_type, requests.RequestException):
+            raise EtcException(exc)
         reraise(exc_type, exc, tb)
 
     def get(self, key, recursive=False, sorted=False, quorum=False,
